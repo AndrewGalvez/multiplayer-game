@@ -1,18 +1,18 @@
 {
-  "name": "game",
-  "version": "1.0.0",
-  "description": "",
-  "main": "app.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "server": "nodemon app.js"
-  },
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "express": "^4.21.0",
-    "nodemon": "^3.1.7",
-    "socket.io": "^4.8.0",
-    "uuidv4": "^6.2.13"
-  }
+	"name": "game",
+	"version": "1.0.0",
+	"description": "",
+	"main": "app.js",
+	"scripts": {
+		"test": "nodemon app.js",
+		"server": "node app.js"
+	},
+	"author": "",
+	"license": "ISC",
+	"dependencies": {
+		"express": "^4.21.0",
+		"nodemon": "^3.1.7",
+		"socket.io": "^4.8.0",
+		"uuidv4": "^6.2.13"
+	}
 }
