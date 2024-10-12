@@ -55,10 +55,6 @@ let canMove = {
 };
 let lastUpdate = Date.now();
 let updateDelay = 5;
-let prevObj = game.players[socket.id] || {
-	x: 0,
-	y: 0,
-};
 function loop() {
 	canMove["w"] = true;
 	canMove["a"] = true;
@@ -133,7 +129,6 @@ function loop() {
 			y: game.players[socket.id].y,
 		});
 
-		prevObj = game.players[socket.id];
 		lastUpdate = Date.now();
 	}
 	requestAnimationFrame(loop);
