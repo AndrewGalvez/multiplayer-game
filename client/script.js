@@ -128,15 +128,11 @@ function loop() {
 	}
 
 	if (Date.now() - lastUpdate >= updateDelay && game.players[socket.id]) {
-		if (
-			prevObj.x != game.players[socket.id].x &&
-			prevObj.y != game.players[socket.id].y
-		) {
-			socket.emit("move", {
-				x: game.players[socket.id].x,
-				y: game.players[socket.id].y,
-			});
-		}
+		socket.emit("move", {
+			x: game.players[socket.id].x,
+			y: game.players[socket.id].y,
+		});
+
 		prevObj = game.players[socket.id];
 		lastUpdate = Date.now();
 	}
