@@ -19,11 +19,6 @@ socket.emit("name", name);
 socket.on("newPlayer", (data) => {
 	game.players[data.id] = data.obj;
 });
-socket.on("playerName", (data) => {
-	if (game.players[data.id]) {
-		game.players[data.id].name = data.name;
-	}
-});
 socket.on("currentGame", (data) => {
 	game = data;
 });
