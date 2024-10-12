@@ -2,17 +2,19 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const readline = require("readline");
-
+const path = require("path");
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
 app.use("/client", express.static(__dirname + "/client"));
 
+app.get("/favicon.ico", (req, res) =>
+	res.sendFile(path.join(__dirname, "client", "favicon.png"))
+);
 app.get("/", (req, res) => {
 	res.sendFile(__dirname + "/client/index.html");
 }); // send to client html page when connecting directly to the server
-
 const rl = readline.createInterface({
 	input: process.stdin,
 }); // console
