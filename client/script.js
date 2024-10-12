@@ -60,7 +60,10 @@ let canMove = {
 };
 let lastUpdate = Date.now();
 let updateDelay = 5;
-let prevObj = game.players[socket.id];
+let prevObj = game.players[socket.id] || {
+	x: 0,
+	y: 0,
+};
 function loop() {
 	canMove["w"] = true;
 	canMove["a"] = true;
@@ -133,11 +136,12 @@ function loop() {
 		if (
 			prevObj.x != game.players[socket.id].x &&
 			prevObj.y != game.players[socket.id].y
-		)
+		) {
 			socket.emit("move", {
 				x: game.players[socket.id].x,
 				y: game.players[socket.id].y,
 			});
+		}
 		prevObj = game.players[socket.id];
 		lastUpdate = Date.now();
 	}
