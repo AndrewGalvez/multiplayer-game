@@ -6,13 +6,14 @@ function checkCollision(player1, player2) {
 		player1.y + 25 > player2.y
 	);
 }
-const socket = io();
 
 var name = prompt("Pick a name: ").substring(0, 8);
 
 let game = {
 	players: {},
 };
+
+const socket = io();
 
 socket.emit("name", name);
 
