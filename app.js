@@ -54,9 +54,23 @@ rl.on("line", (input) => {
 	handleCommand(input);
 }); // event listener for command in console
 
-let game = {
-	players: {},
+let game;
+
+init_game = () => {
+	game = {
+		players: {},
+		banana: {
+			x: 0,
+			y: 0,
+			w: 15 * 4,
+			h: 12 * 4,
+			img: "/client/banana.png",
+		},
+	};
 };
+
+init_game();
+
 // when a player joins
 io.on("connection", (socket) => {
 	// generate player object
@@ -65,6 +79,9 @@ io.on("connection", (socket) => {
 		y: Math.floor(Math.floor(Math.random() * 775) / 5) * 5,
 		speed: 5,
 		name: "",
+		w: 25,
+		h: 25,
+		score: 0,
 	};
 	// sends stuff to clients letting them know they joined when server recieves client name
 	socket.on("name", (data) => {
@@ -86,6 +103,16 @@ io.on("connection", (socket) => {
 			x: data.x,
 			y: data.y,
 			id: socket.id,
+		});
+	});
+	socket.on("gotBanana", (data) => {
+		socket.score += 1;
+		game.banana.x = Math.random() * (1000 - game.banana.w);
+		game.banana.y = Math.random() * (800 - game.banana.h);
+		io.emit("playerGotBanana", {
+			id: socket.id,
+			newX: game.banana.x,
+			newY: game.banana.y,
 		});
 	});
 	// when player leaves the game
