@@ -27,10 +27,6 @@ const socket = io();
 
 socket.emit("name", name);
 
-socket.on("moveBanana", () => {
-	game.banana.x = -10000;
-	game.banana.y = -10000;
-});
 socket.on("newPlayer", (data) => {
 	game.players[data.id] = data.obj;
 });
@@ -97,7 +93,6 @@ function loop() {
 	// Banana
 	if (checkCollision(game.banana, a)) {
 		socket.emit("gotBanana");
-		socket.broadcast.emit("moveBanana");
 		game.banana.x = -10000; // move banana away so you cant collide with it multiple times
 		game.banana.y = -10000; // when you wait for the new position of the banana from the server
 	}
