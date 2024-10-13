@@ -10,7 +10,8 @@ function checkCollision(player1, player2) {
 	);
 }
 
-var name = prompt("Pick a name: ").substring(0, 8);
+var name = prompt("Pick a name: ").substring(0, 8).trim() || "blank";
+if (name.trim() === "") name = "blank";
 
 let game = {
 	players: {},

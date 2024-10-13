@@ -1,3 +1,4 @@
+var fs = require("fs");
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
@@ -83,9 +84,23 @@ io.on("connection", (socket) => {
 		h: 25,
 		score: 0,
 	};
-	// sends stuff to clients letting them know they joined when server recieves client name
+	const possibleNames = JSON.parse(fs.readFileSync("names.json", "utf8"));
+
 	socket.on("name", (data) => {
-		game.players[socket.id].name = data;
+		const names = Object.values(game.players).map((player) => player.name);
+
+		if (data.trim() === "blank") {
+			let randomName;
+			do {
+				randomName =
+					possibleNames[Math.floor(Math.random() * possibleNames.length)];
+			} while (names.includes(randomName));
+
+			game.players[socket.id].name = randomName;
+		} else {
+			game.players[socket.id].name = data;
+		}
+
 		console.log(
 			`[Connections] ${game.players[socket.id].name} (${socket.id}) connected`
 		);
@@ -95,6 +110,7 @@ io.on("connection", (socket) => {
 			obj: game.players[socket.id],
 		});
 	});
+
 	// player position change
 	socket.on("move", (data) => {
 		game.players[socket.id].x = data.x;
@@ -106,7 +122,12 @@ io.on("connection", (socket) => {
 		});
 	});
 	socket.on("gotBanana", (data) => {
-		socket.score += 1;
+		game.players[socket.id].score += 1;
+		console.log(
+			`[Server] ${game.players[socket.id].name} got a banana: ${
+				game.players[socket.id].score
+			}`
+		);
 		game.banana.x = Math.random() * (1000 - game.banana.w);
 		game.banana.y = Math.random() * (800 - game.banana.h);
 		io.emit("playerGotBanana", {
