@@ -30,6 +30,7 @@ function background() {
 	let bgImg = new Image();
 	bgImg.src = "/client/sprites/bananaValley.png"
 	ctx.drawImage(bgImg, 0, 0, cnv.width, cnv.height);
+
 }
 function updateLeaderBoard(leaderBoard) {
 	let scores = {};
@@ -134,6 +135,7 @@ let scoreText = document.getElementById("pscore");
 let leaderBoard = document.getElementById("Leaderboard");
 function loop() {
 	try{
+
 	var a = game.players[socket.id];
 	setScoreText();
 	updateLeaderBoard(leaderBoard);

@@ -42,7 +42,7 @@ const handleCommand = (command) => {
 						`[Commands] Disconnect: Manually disconnected ${game.players[id].name}`
 					);
 					socket.emit("disconnectMe", {
-						reason: "manually disconnected",
+						reason: "Manually disconnected by server owner",
 					});
 					socket.disconnect();
 				} else {
@@ -74,6 +74,9 @@ init_game = () => {
 			w: 15 * 4,
 			h: 12 * 4,
 			img: "/client/banana.png",
+			render(ctx, image) {
+				ctx.drawImage(image, this.x, this.y, this.w, this.h);
+			},
 		},
 	};
 };
@@ -83,6 +86,11 @@ init_game();
 // when a player joins
 io.on("connection", (socket) => {
 	// generate player object
+	if (Object.keys(game.players).length > 8) {
+		socket.emit("disconnectMe", {
+			reason: "Tried to join with too many players",
+		});
+	}
 	game.players[socket.id] = {
 		x: Math.floor(Math.floor(Math.random() * 975) / 5) * 5,
 		y: Math.floor(Math.floor(Math.random() * 775) / 5) * 5,
