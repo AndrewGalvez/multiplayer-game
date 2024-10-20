@@ -1,10 +1,32 @@
 <!DOCTYPE html>
-<html>
-	<head>
-		<title>Game</title>
+<html><head><meta charset="utf-8"></head><head><title>Game</title>
+	
+		<style>
+			p {
+				font-size: 20 px;
+			}
+			html {
+				background-color: grey;
+			}
+			canvas {
+				border: 5px solid white;
+			}
+		</style>
+		</head><body><div style="width: 20%; float: left; word-wrap: break-word">
+			<u>
+				<p id="pname" style="text-align: center; font-size: 32px"></p>
+			</u>
+			<p id="pscore" style="font-size: 24px">Score</p>
+		</div>
+		<div style="width: 20%; float: right">
+			<u>
+				<p style="text-align: center; font-size: 32px">Leaderboard</p>
+			</u>
+			<div id="Leaderboard" style="white-space: pre-line; font-size: 24px"></div>
+		</div>
 		<center><canvas></canvas></center>
 
 		<script src="/socket.io/socket.io.js"></script>
 		<script src="client/script.js"></script>
-	</head>
-</html>
+	
+</body></html>

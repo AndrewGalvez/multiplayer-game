@@ -1,8 +1,6 @@
 // lol
 var spriteState = 4;
 console.log("if u hack ur a loser");
-var spriteState = 4;
-var error = "Error not recorded";
 
 function checkCollision(player1, player2) {
 	return (
@@ -13,9 +11,6 @@ function checkCollision(player1, player2) {
 	);
 }
 
-<<<<<<< Updated upstream
-var name = prompt("Pick a name: ").substring(0, 8).trim() || "blank";
-=======
 function resetMove() {
 	// reset move variables
 	canMove["w"] = true;
@@ -57,7 +52,6 @@ try {
 }
 
 if (name == null || name == undefined) name = "blank";
->>>>>>> Stashed changes
 if (name.trim() === "") name = "blank";
 
 let game = {
@@ -83,8 +77,19 @@ socket.on("newPlayer", (data) => {
 socket.on("currentGame", (data) => {
 	game = data;
 	var a = game.banana.img;
+	game.banana.render = function (ctx, image) {
+		ctx.drawImage(
+			image,
+			game.banana.x,
+			game.banana.y,
+			game.banana.w,
+			game.banana.h
+		);
+	};
+
 	game.banana.img = new Image();
 	game.banana.img.src = a;
+	document.getElementById("pname").innerText = game.players[socket.id].name;
 	loop();
 });
 socket.on("playerDisconnect", (data) => {
@@ -101,11 +106,11 @@ socket.on("playerGotBanana", (data) => {
 	game.banana.y = data.newY;
 });
 socket.on("disconnectMe", (data) => {
-	window.location.assign("/client/disconnect.html");
+	window.location.assign(`/client/disconnect.html?reason=${data.reason}`);
 });
 socket.on("disconnect", () => {
 	window.alert(
-		"You have lost connection to the server. Continue to attempt to reconnect."
+		"You have lost connection to the server for an unknown reason. Continue to attempt to reconnect."
 	);
 	window.location.reload();
 });
@@ -125,25 +130,9 @@ let canMove = {
 };
 let lastUpdate = Date.now();
 let updateDelay = 5;
+let scoreText = document.getElementById("pscore");
+let leaderBoard = document.getElementById("Leaderboard");
 function loop() {
-<<<<<<< Updated upstream
-	var a = game.players[socket.id] || {
-		x: 0,
-		y: 0,
-	};
-	// reset move variables
-	canMove["w"] = true;
-	canMove["a"] = true;
-	canMove["s"] = true;
-	canMove["d"] = true;
-	// background
-	//ctx.clearRect(0, 0, cnv.width, cnv.height);
-	//ctx.fillStyle = "black";
-	//ctx.fillRect(0, 0, cnv.width, cnv.height);
-	let bgImg = new Image();
-	bgImg.src = "/client/sprites/bananaValley.png"
-	ctx.drawImage(bgImg, 0, 0, cnv.width, cnv.height);
-=======
 	try{
 	var a = game.players[socket.id];
 	setScoreText();
@@ -152,20 +141,13 @@ function loop() {
 
 	background();
 
->>>>>>> Stashed changes
 	// Banana
 	if (checkCollision(game.banana, a)) {
 		socket.emit("gotBanana");
 		game.banana.x = -10000; // move banana away so you cant collide with it multiple times
 		game.banana.y = -10000; // when you wait for the new position of the banana from the server
 	}
-	ctx.drawImage(
-		game.banana.img,
-		game.banana.x,
-		game.banana.y,
-		game.banana.w,
-		game.banana.h
-	);
+	game.banana.render(ctx, game.banana.img);
 
 	// player logic
 	ctx.fillStyle = "white";
@@ -229,17 +211,8 @@ function loop() {
 			spriteState = 2;
 		}
 	}
-<<<<<<< Updated upstream
-	//detect hacking
-		if (game.players[socket.id].speed >= 6){
-			error = "Speed Hacking; do not post";
-			location.href = "/client/error.html";
-			document.getElementById('errorField').textContent = error;
-		}
-=======
 	const test = 213/0;
 		 console.log (testfshuio);
->>>>>>> Stashed changes
 	// send updates to server
 	if (Date.now() - lastUpdate >= updateDelay && game.players[socket.id]) {
 		socket.emit("move", {
