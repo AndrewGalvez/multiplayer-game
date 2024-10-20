@@ -1,4 +1,5 @@
 var fs = require("fs");
+var pageError = "Error not defined."
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
@@ -19,7 +20,14 @@ app.get("/", (req, res) => {
 const rl = readline.createInterface({
 	input: process.stdin,
 }); // console
-
+//find 404s
+app.get('/', (req, res) => {
+	if (req.url !== '/') {
+	  res.redirect('/client/index.html');
+	  pageError = "404 Page Not Found; Post alongside page you typed in";
+	  document.getElementById('errorField').textContent = pageError;
+	}
+  });
 const handleCommand = (command) => {
 	const args = command.split(" ");
 	const cmd = args[0];

@@ -1,5 +1,7 @@
 // lol
 console.log("if u hack ur a loser");
+var spriteState = 4;
+var error = "Error not recorded";
 
 function checkCollision(player1, player2) {
 	return (
@@ -23,6 +25,8 @@ let game = {
 		img: new Image(),
 	},
 };
+
+const spriteSheet = {1:"/client/sprites/n.png", 2:"/client/sprites/e.png", 3:"/client/sprites/s.png", 4:"/client/sprites/w.png"};
 
 const socket = io();
 
@@ -87,10 +91,12 @@ function loop() {
 	canMove["s"] = true;
 	canMove["d"] = true;
 	// background
-	ctx.clearRect(0, 0, cnv.width, cnv.height);
-	ctx.fillStyle = "black";
-	ctx.fillRect(0, 0, cnv.width, cnv.height);
-
+	//ctx.clearRect(0, 0, cnv.width, cnv.height);
+	//ctx.fillStyle = "black";
+	//ctx.fillRect(0, 0, cnv.width, cnv.height);
+	let bgImg = new Image();
+	bgImg.src = "/client/sprites/bananaValley.png"
+	ctx.drawImage(bgImg, 0, 0, cnv.width, cnv.height);
 	// Banana
 	if (checkCollision(game.banana, a)) {
 		socket.emit("gotBanana");
@@ -119,12 +125,17 @@ function loop() {
 	}
 	for (var id in game.players) {
 		p = game.players[id];
-		ctx.fillRect(p.x, p.y, 25, 25);
+		//ctx.fillRect(p.x, p.y, 25, 25);
+		let newSprite = new Image();
+		newSprite.src = spriteSheet[spriteState];
+		ctx.drawImage(newSprite, p.x, p.y);
+		ctx.fillStyle = 'red';
 		ctx.fillText(
 			p.name + ` (${p.score})`,
 			p.x + 12.5 - ctx.measureText(p.name + ` (${p.score})`).width / 2,
 			p.y - 12
 		);
+		ctx.fillStyle = 'white';
 	}
 	// move
 	if (keys["w"] || keys["a"] || keys["s"] || keys["d"]) {
@@ -134,6 +145,7 @@ function loop() {
 			game.players[socket.id].y - game.players[socket.id].speed > 0
 		) {
 			game.players[socket.id].y -= game.players[socket.id].speed;
+			spriteState = 1;
 		}
 		if (
 			keys["a"] &&
@@ -141,6 +153,7 @@ function loop() {
 			game.players[socket.id].x - game.players[socket.id].speed > 0
 		) {
 			game.players[socket.id].x -= game.players[socket.id].speed;
+			spriteState = 4;
 		}
 		if (
 			keys["s"] &&
@@ -149,6 +162,7 @@ function loop() {
 				cnv.height
 		) {
 			game.players[socket.id].y += game.players[socket.id].speed;
+			spriteState = 3;
 		}
 		if (
 			keys["d"] &&
@@ -156,8 +170,15 @@ function loop() {
 			game.players[socket.id].x + 25 + game.players[socket.id].speed < cnv.width
 		) {
 			game.players[socket.id].x += game.players[socket.id].speed;
+			spriteState = 2;
 		}
 	}
+	//detect hacking
+		if (game.players[socket.id].speed >= 6){
+			error = "Speed Hacking; do not post";
+			location.href = "/client/error.html";
+			document.getElementById('errorField').textContent = error;
+		}
 	// send updates to server
 	if (Date.now() - lastUpdate >= updateDelay && game.players[socket.id]) {
 		socket.emit("move", {
