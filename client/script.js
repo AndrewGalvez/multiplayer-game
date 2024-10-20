@@ -1,4 +1,5 @@
 // lol
+var spriteState = 4;
 console.log("if u hack ur a loser");
 var spriteState = 4;
 var error = "Error not recorded";
@@ -12,7 +13,51 @@ function checkCollision(player1, player2) {
 	);
 }
 
+<<<<<<< Updated upstream
 var name = prompt("Pick a name: ").substring(0, 8).trim() || "blank";
+=======
+function resetMove() {
+	// reset move variables
+	canMove["w"] = true;
+	canMove["a"] = true;
+	canMove["s"] = true;
+	canMove["d"] = true;
+}
+
+function setScoreText() {
+	scoreText.textContent = "Score: " + game.players[socket.id].score.toString();
+}
+function background() {
+	// background
+	//ctx.clearRect(0, 0, cnv.width, cnv.height);
+	//ctx.fillStyle = "black";
+	//ctx.fillRect(0, 0, cnv.width, cnv.height);
+	let bgImg = new Image();
+	bgImg.src = "/client/sprites/bananaValley.png"
+	ctx.drawImage(bgImg, 0, 0, cnv.width, cnv.height);
+}
+function updateLeaderBoard(leaderBoard) {
+	let scores = {};
+	for (let id in game.players) {
+		scores[game.players[id].name] = game.players[id].score;
+	}
+	let sortedScores = Object.keys(scores).sort((a, b) => scores[b] - scores[a]);
+	let leaderboardText = sortedScores
+		.map((name) => `${name}: ${scores[name]} \n`)
+		.join("\n");
+	leaderBoard.textContent = leaderboardText; // Assuming leaderboard is a DOM element
+}
+
+try {
+	var name =
+		prompt("Pick a name: ").substring(0, 14).trim().replaceAll(" ", "-") ||
+		"blank";
+} catch {
+	var name = "blank";
+}
+
+if (name == null || name == undefined) name = "blank";
+>>>>>>> Stashed changes
 if (name.trim() === "") name = "blank";
 
 let game = {
@@ -81,6 +126,7 @@ let canMove = {
 let lastUpdate = Date.now();
 let updateDelay = 5;
 function loop() {
+<<<<<<< Updated upstream
 	var a = game.players[socket.id] || {
 		x: 0,
 		y: 0,
@@ -97,6 +143,16 @@ function loop() {
 	let bgImg = new Image();
 	bgImg.src = "/client/sprites/bananaValley.png"
 	ctx.drawImage(bgImg, 0, 0, cnv.width, cnv.height);
+=======
+	try{
+	var a = game.players[socket.id];
+	setScoreText();
+	updateLeaderBoard(leaderBoard);
+	resetMove();
+
+	background();
+
+>>>>>>> Stashed changes
 	// Banana
 	if (checkCollision(game.banana, a)) {
 		socket.emit("gotBanana");
@@ -173,12 +229,17 @@ function loop() {
 			spriteState = 2;
 		}
 	}
+<<<<<<< Updated upstream
 	//detect hacking
 		if (game.players[socket.id].speed >= 6){
 			error = "Speed Hacking; do not post";
 			location.href = "/client/error.html";
 			document.getElementById('errorField').textContent = error;
 		}
+=======
+	const test = 213/0;
+		 console.log (testfshuio);
+>>>>>>> Stashed changes
 	// send updates to server
 	if (Date.now() - lastUpdate >= updateDelay && game.players[socket.id]) {
 		socket.emit("move", {
@@ -189,6 +250,12 @@ function loop() {
 		lastUpdate = Date.now();
 	}
 	requestAnimationFrame(loop);
+}
+catch(error){
+	console.error("An error occurred on line:", error.lineNumber, "in file:", error.fileName, "message reads:", error.message);
+	window.location.href = "/client/disconnect.html";
+	document.getElementById('errorsError').innerText = "An error occurred on line:", error.lineNumber, "in file:", error.fileName, "message reads:", error.message;
+}
 }
 
 document.onkeydown = (e) => {
