@@ -28,9 +28,8 @@ function background() {
 	//ctx.fillStyle = "black";
 	//ctx.fillRect(0, 0, cnv.width, cnv.height);
 	let bgImg = new Image();
-	bgImg.src = "/client/sprites/bananaValley.png"
+	bgImg.src = "/client/sprites/bananaValley.png";
 	ctx.drawImage(bgImg, 0, 0, cnv.width, cnv.height);
-
 }
 function updateLeaderBoard(leaderBoard) {
 	let scores = {};
@@ -66,7 +65,12 @@ let game = {
 	},
 };
 
-const spriteSheet = {1:"/client/sprites/n.png", 2:"/client/sprites/e.png", 3:"/client/sprites/s.png", 4:"/client/sprites/w.png"};
+const spriteSheet = {
+	1: "/client/sprites/n.png",
+	2: "/client/sprites/e.png",
+	3: "/client/sprites/s.png",
+	4: "/client/sprites/w.png",
+};
 
 const socket = io();
 
@@ -134,8 +138,6 @@ let updateDelay = 5;
 let scoreText = document.getElementById("pscore");
 let leaderBoard = document.getElementById("Leaderboard");
 function loop() {
-	try{
-
 	var a = game.players[socket.id];
 	setScoreText();
 	updateLeaderBoard(leaderBoard);
@@ -169,13 +171,13 @@ function loop() {
 		let newSprite = new Image();
 		newSprite.src = spriteSheet[spriteState];
 		ctx.drawImage(newSprite, p.x, p.y);
-		ctx.fillStyle = 'red';
+		ctx.fillStyle = "red";
 		ctx.fillText(
 			p.name + ` (${p.score})`,
 			p.x + 12.5 - ctx.measureText(p.name + ` (${p.score})`).width / 2,
 			p.y - 12
 		);
-		ctx.fillStyle = 'white';
+		ctx.fillStyle = "white";
 	}
 	// move
 	if (keys["w"] || keys["a"] || keys["s"] || keys["d"]) {
@@ -213,8 +215,6 @@ function loop() {
 			spriteState = 2;
 		}
 	}
-	const test = 213/0;
-		 console.log (testfshuio);
 	// send updates to server
 	if (Date.now() - lastUpdate >= updateDelay && game.players[socket.id]) {
 		socket.emit("move", {
@@ -225,12 +225,6 @@ function loop() {
 		lastUpdate = Date.now();
 	}
 	requestAnimationFrame(loop);
-}
-catch(error){
-	console.error("An error occurred on line:", error.lineNumber, "in file:", error.fileName, "message reads:", error.message);
-	window.location.href = "/client/disconnect.html";
-	document.getElementById('errorsError').innerText = "An error occurred on line:", error.lineNumber, "in file:", error.fileName, "message reads:", error.message;
-}
 }
 
 document.onkeydown = (e) => {
