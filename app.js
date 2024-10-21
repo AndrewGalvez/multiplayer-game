@@ -94,6 +94,7 @@ io.on("connection", (socket) => {
 		w: 25,
 		h: 25,
 		score: 0,
+		spriteState: 1,
 	};
 	const possibleNames = JSON.parse(fs.readFileSync("names.json", "utf8"));
 
@@ -132,6 +133,10 @@ io.on("connection", (socket) => {
 			id: socket.id,
 		});
 	});
+	socket.on("newSprite", (data) => {
+		game.players[socket.id].spriteState = data;
+		io.emit("playerNewSprite", { id: socket.id, new: data });
+	});
 	socket.on("gotBanana", (data) => {
 		game.players[socket.id].score += 1;
 		console.log(
@@ -147,6 +152,7 @@ io.on("connection", (socket) => {
 			newY: game.banana.y,
 		});
 	});
+
 	// when player leaves the game
 	socket.on("disconnect", () => {
 		console.log(

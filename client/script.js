@@ -1,5 +1,4 @@
 // lol
-var spriteState = 4;
 console.log("if u hack ur a loser");
 
 function checkCollision(player1, player2) {
@@ -71,7 +70,12 @@ const spriteSheet = {
 	3: "/client/sprites/s.png",
 	4: "/client/sprites/w.png",
 };
-
+// preload images
+for (var i in spriteSheet) {
+	var b = new Image();
+	b.src = spriteSheet[i];
+}
+delete b;
 const socket = io();
 
 socket.emit("name", name);
@@ -104,6 +108,9 @@ socket.on("playerMoved", (data) => {
 	if (data.id == socket.id) return;
 	game.players[data.id].x = data.x;
 	game.players[data.id].y = data.y;
+});
+socket.on("playerNewSprite", (data) => {
+	game.players[data.id].spriteState = data.new;
 });
 socket.on("playerGotBanana", (data) => {
 	game.players[data.id].score += 1;
@@ -159,17 +166,44 @@ function loop() {
 	for (var id in game.players) {
 		if (id === socket.id) continue; // skip checking collision with self
 		var p = game.players[id];
+		let player = game.players[socket.id];
+		if (
+			checkCollision(
+				{ x: player.x, y: player.y - player.speed, w: player.w, h: player.h },
+				p
+			)
+		)
+			canMove["w"] = false;
 
-		if (checkCollision({ x: a.x, y: a.y - a.speed }, p)) canMove["w"] = false;
-		if (checkCollision({ x: a.x - a.speed, y: a.y }, p)) canMove["a"] = false;
-		if (checkCollision({ x: a.x, y: a.y + a.speed }, p)) canMove["s"] = false;
-		if (checkCollision({ x: a.x + a.speed, y: a.y }, p)) canMove["d"] = false;
+		if (
+			checkCollision(
+				{ x: player.x - player.speed, y: player.y, w: player.w, h: player.h },
+				p
+			)
+		)
+			canMove["a"] = false;
+
+		if (
+			checkCollision(
+				{ x: player.x, y: player.y + player.speed, w: player.w, h: player.h },
+				p
+			)
+		)
+			canMove["s"] = false;
+
+		if (
+			checkCollision(
+				{ x: player.x + player.speed, y: player.y, w: player.w, h: player.h },
+				p
+			)
+		)
+			canMove["d"] = false;
 	}
 	for (var id in game.players) {
 		p = game.players[id];
 		//ctx.fillRect(p.x, p.y, 25, 25);
 		let newSprite = new Image();
-		newSprite.src = spriteSheet[spriteState];
+		newSprite.src = spriteSheet[p.spriteState];
 		ctx.drawImage(newSprite, p.x, p.y);
 		ctx.fillStyle = "red";
 		ctx.fillText(
@@ -187,7 +221,8 @@ function loop() {
 			game.players[socket.id].y - game.players[socket.id].speed > 0
 		) {
 			game.players[socket.id].y -= game.players[socket.id].speed;
-			spriteState = 1;
+			game.players[socket.id].spriteState = 1;
+			socket.emit("newSprite", 1);
 		}
 		if (
 			keys["a"] &&
@@ -195,7 +230,8 @@ function loop() {
 			game.players[socket.id].x - game.players[socket.id].speed > 0
 		) {
 			game.players[socket.id].x -= game.players[socket.id].speed;
-			spriteState = 4;
+			game.players[socket.id].spriteState = 4;
+			socket.emit("newSprite", 4);
 		}
 		if (
 			keys["s"] &&
@@ -204,7 +240,8 @@ function loop() {
 				cnv.height
 		) {
 			game.players[socket.id].y += game.players[socket.id].speed;
-			spriteState = 3;
+			game.players[socket.id].spriteState = 3;
+			socket.emit("newSprite", 3);
 		}
 		if (
 			keys["d"] &&
@@ -212,7 +249,8 @@ function loop() {
 			game.players[socket.id].x + 25 + game.players[socket.id].speed < cnv.width
 		) {
 			game.players[socket.id].x += game.players[socket.id].speed;
-			spriteState = 2;
+			game.players[socket.id].spriteState = 2;
+			socket.emit("newSprite", 2);
 		}
 	}
 	// send updates to server
