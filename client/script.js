@@ -76,6 +76,7 @@ for (var i in spriteSheet) {
 	b.src = spriteSheet[i];
 }
 delete b;
+
 const socket = io();
 
 socket.emit("name", name);
@@ -201,11 +202,12 @@ function loop() {
 	}
 	for (var id in game.players) {
 		p = game.players[id];
-		//ctx.fillRect(p.x, p.y, 25, 25);
+		ctx.fillStyle = "red";
+		ctx.fillRect(p.x, p.y, 25, 25); // <- delete this later, for testing
+
 		let newSprite = new Image();
 		newSprite.src = spriteSheet[p.spriteState];
 		ctx.drawImage(newSprite, p.x, p.y);
-		ctx.fillStyle = "red";
 		ctx.fillText(
 			p.name + ` (${p.score})`,
 			p.x + 12.5 - ctx.measureText(p.name + ` (${p.score})`).width / 2,
