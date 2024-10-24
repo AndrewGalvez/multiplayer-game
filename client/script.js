@@ -18,9 +18,6 @@ function resetMove() {
 	canMove["d"] = true;
 }
 
-function setScoreText() {
-	scoreText.textContent = "Score: " + game.players[socket.id].score.toString();
-}
 function background() {
 	// background
 	//ctx.clearRect(0, 0, cnv.width, cnv.height);
@@ -30,39 +27,24 @@ function background() {
 	bgImg.src = "/client/sprites/bananaValley.png";
 	ctx.drawImage(bgImg, 0, 0, cnv.width, cnv.height);
 }
-function updateLeaderBoard(leaderBoard) {
-	let scores = {};
-	for (let id in game.players) {
-		scores[game.players[id].name] = game.players[id].score;
+function getName() {
+	while (true) {
+		try {
+			var name =
+				prompt("Pick a name: ").substring(0, 14).trim().replaceAll(" ", "-") ||
+				"blank";
+		} catch {
+			var name = "blank";
+		}
+
+		if (name == null || name == undefined) name = "blank";
+		else if (name.trim() === "") name = "blank";
+		else break;
 	}
-	let sortedScores = Object.keys(scores).sort((a, b) => scores[b] - scores[a]);
-	let leaderboardText = sortedScores
-		.map((name) => `${name}: ${scores[name]} \n`)
-		.join("\n");
-	leaderBoard.textContent = leaderboardText; // Assuming leaderboard is a DOM element
 }
+getName();
 
-try {
-	var name =
-		prompt("Pick a name: ").substring(0, 14).trim().replaceAll(" ", "-") ||
-		"blank";
-} catch {
-	var name = "blank";
-}
-
-if (name == null || name == undefined) name = "blank";
-if (name.trim() === "") name = "blank";
-
-let game = {
-	players: {},
-	banana: {
-		x: 0,
-		y: 0,
-		w: 0,
-		h: 0,
-		img: new Image(),
-	},
-};
+let game;
 
 const spriteSheet = {
 	1: "/client/sprites/n.png",
@@ -86,19 +68,6 @@ socket.on("newPlayer", (data) => {
 });
 socket.on("currentGame", (data) => {
 	game = data;
-	var a = game.banana.img;
-	game.banana.render = function (ctx, image) {
-		ctx.drawImage(
-			image,
-			game.banana.x,
-			game.banana.y,
-			game.banana.w,
-			game.banana.h
-		);
-	};
-
-	game.banana.img = new Image();
-	game.banana.img.src = a;
 	document.getElementById("pname").innerText = game.players[socket.id].name;
 	loop();
 });
@@ -143,24 +112,17 @@ let canMove = {
 };
 let lastUpdate = Date.now();
 let updateDelay = 5;
-let scoreText = document.getElementById("pscore");
-let leaderBoard = document.getElementById("Leaderboard");
+let prevPos = [0, 0];
 function loop() {
 	var a = game.players[socket.id];
-	setScoreText();
-	updateLeaderBoard(leaderBoard);
 	resetMove();
 
 	background();
 
-	// Banana
-	if (checkCollision(game.banana, a)) {
-		socket.emit("gotBanana");
-		game.banana.x = -10000; // move banana away so you cant collide with it multiple times
-		game.banana.y = -10000; // when you wait for the new position of the banana from the server
+	for (var entity of game.entities) {
+		entity.update();
+		entity.render(ctx);
 	}
-	game.banana.render(ctx, game.banana.img);
-
 	// player logic
 	ctx.fillStyle = "white";
 	ctx.font = "16px Arial";
@@ -256,11 +218,16 @@ function loop() {
 		}
 	}
 	// send updates to server
-	if (Date.now() - lastUpdate >= updateDelay && game.players[socket.id]) {
+	if (
+		Date.now() - lastUpdate >= updateDelay &&
+		game.players[socket.id] &&
+		[game.players[socket.id].x, game.players[socket.id].y] != prevPos
+	) {
 		socket.emit("move", {
 			x: game.players[socket.id].x,
 			y: game.players[socket.id].y,
 		});
+		prevPos = [game.players[socket.id].x, game.players[socket.id].y];
 
 		lastUpdate = Date.now();
 	}
