@@ -108,6 +108,13 @@ io.on("connection", (socket) => {
 		});
 	});
 
+	socket.on("joinRoom", (data) => {
+		socket.join(data);
+	});
+	socket.on("leaveRoom", (data) => {
+		socket.leave(data);
+	});
+
 	// player position change
 	socket.on("move", (data) => {
 		rooms[[...socket.rooms][0]].players[socket.id].x = data.x;
