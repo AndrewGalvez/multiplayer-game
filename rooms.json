@@ -1,6 +1,11 @@
 {
 	"lobby": {
 		"players": {},
-		"entities": []
+		"enemies": []
+	},
+	"dungeon": {
+		"players": {},
+		"enemies": [],
+		"backgroundImage": "/client/sprites/dungeonBackground.png"
 	}
 }

@@ -11,9 +11,6 @@ const io = new Server(server);
 
 app.use("/client", express.static(__dirname + "/client"));
 
-app.get("/favicon.ico", (req, res) =>
-	res.sendFile(path.join(__dirname, "client", "favicon.png"))
-);
 app.get("/", (req, res) => {
 	res.sendFile(__dirname + "/client/index.html");
 	if (req.url !== "/") {
@@ -73,12 +70,13 @@ io.on("connection", (socket) => {
 		y: Math.floor(Math.floor(Math.random() * 775) / 5) * 5,
 		speed: 5,
 		name: "",
-		w: 25,
-		h: 25,
+		w: 64,
+		h: 64,
 		score: 0,
 		spriteState: 1,
 		id: socket.id,
 	};
+	let tempPlayer = rooms["lobby"].players[socket.id];
 	socket.leave(socket.id);
 	socket.join("lobby");
 
@@ -110,9 +108,11 @@ io.on("connection", (socket) => {
 
 	socket.on("joinRoom", (data) => {
 		socket.join(data);
+		rooms[[...socket.rooms][0]].players[socket.id] = tempPlayer;
 	});
 	socket.on("leaveRoom", (data) => {
-		socket.leave(data);
+		tempPlayer = rooms[[...socket.rooms][0]].players[socket.id];
+		socket.leave([...socket.rooms][0]);
 	});
 
 	// player position change
