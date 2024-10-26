@@ -21,14 +21,23 @@ function background() {
 	//ctx.fillStyle = "black";
 	//ctx.fillRect(0, 0, cnv.width, cnv.height);
 	let bgImg = new Image();
-	bgImg.src = "/client/sprites/bananaValley.png";
+	bgImg.src = game.backgroundImage;
 	ctx.drawImage(bgImg, 0, 0, cnv.width, cnv.height);
 }
 
 function changeRoom(room) {
-	socket.emit("leaveRoom");
-	socket.emit("joinRoom", room);
+	ctx.clearRect(0, 0, 1000, 800);
+	ctx.fillStyle = "black";
+	ctx.fillRect(0, 0, 1000, 800);
+	ctx.fillStyle = "white";
+	ctx.textAlign = "center";
+	ctx.fillText("Loading...", 500, 400);
+
+	requestAnimationFrame(() => {
+		socket.emit("joinRoom", room);
+	});
 }
+
 function getName() {
 	var name = "";
 	while (true) {
@@ -62,7 +71,12 @@ socket.on("newPlayer", (data) => {
 });
 socket.on("currentGame", (data) => {
 	game = data;
+	if (!game.players[socket.id]) {
+		console.warn("Player not found in game data.");
+		return;
+	}
 });
+
 socket.on("playerDisconnect", (data) => {
 	delete game.players[data];
 });
@@ -106,131 +120,156 @@ let lastUpdate = Date.now();
 let updateDelay = 5;
 let prevPos = [0, 0];
 function loop() {
-	if (!game) {
-		requestAnimationFrame(loop);
-		console.log("waiting");
-		return;
-	}
-	var a = game.players[socket.id];
-	resetMove();
-
-	background();
-
-	for (var enemy of game.enemies) {
-		if (checkCollision(enemy, a)) {
-			// TODO: stuff
+	if (keys["l"]) changeRoom("lobby");
+	try {
+		if (!game || !game.players || !game.players[socket.id]) {
+			console.log("Waiting for game state...");
+			requestAnimationFrame(loop);
+			return;
 		}
-		enemy.update();
-		enemy.render(ctx);
-	}
-	// player logic
-	ctx.fillStyle = "white";
-	ctx.font = "16px Arial";
-	for (var id in game.players) {
-		p = game.players[id];
-		ctx.fillStyle = "red";
-		//ctx.fillRect(p.x, p.y, p.w, p.h); // <- delete this later, for testing
+		var a = game.players[socket.id];
+		resetMove();
 
-		if (p.spriteState == 1)
-			ctx.drawImage(playerImage, p.w, p.h, p.w, p.h, p.x, p.y, p.w, p.h);
-		// w
-		else if (p.spriteState == 2)
-			ctx.drawImage(playerImage, p.w, 0, p.w, p.h, p.x, p.y, p.w, p.h);
-		// d
-		else if (p.spriteState == 3)
-			ctx.drawImage(playerImage, 0, p.h, p.w, p.h, p.x, p.y, p.w, p.h);
-		// s
-		else if (p.spriteState == 4)
-			ctx.drawImage(playerImage, 0, 0, p.w, p.h, p.x, p.y, p.w, p.h); // a
-		ctx.fillText(
-			p.name + ` (${p.score})`,
-			p.x + p.w / 2 - ctx.measureText(p.name + ` (${p.score})`).width / 2,
-			p.y - 12
-		);
-		ctx.fillStyle = "white";
-		if (id === socket.id) continue; // skip checking collision with self
-		var p = game.players[id];
-		let player = game.players[socket.id];
-		if (
-			checkCollision(
-				{ x: player.x, y: player.y - player.speed, w: player.w, h: player.h },
-				p
-			)
-		)
-			canMove["w"] = false;
-
-		if (
-			checkCollision(
-				{ x: player.x - player.speed, y: player.y, w: player.w, h: player.h },
-				p
-			)
-		)
-			canMove["a"] = false;
-
-		if (
-			checkCollision(
-				{ x: player.x, y: player.y + player.speed, w: player.w, h: player.h },
-				p
-			)
-		)
-			canMove["s"] = false;
-
-		if (
-			checkCollision(
-				{ x: player.x + player.speed, y: player.y, w: player.w, h: player.h },
-				p
-			)
-		)
-			canMove["d"] = false;
-	}
-	// move
-	if (keys["w"] || keys["a"] || keys["s"] || keys["d"]) {
-		if (
-			keys["w"] &&
-			canMove["w"] &&
-			game.players[socket.id].y - game.players[socket.id].speed > 0
-		) {
-			game.players[socket.id].y -= game.players[socket.id].speed;
-			if (game.players[socket.id].spriteState != 1) {
-				socket.emit("newSprite", 1);
+		background();
+		// doors
+		for (var d of game.doors) {
+			if (checkCollision(a, d)) {
+				console.log(`going to ${d.to}`);
+				changeRoom(d.to);
 			}
-			game.players[socket.id].spriteState = 1;
+			ctx.fillStyle = "grey";
+			ctx.fillRect(d.x, d.y, d.w, d.h);
+			ctx.fillStyle = "white";
+			ctx.textAlign = "center";
+			ctx.textBaseline = "middle";
+			ctx.fillText(d.to, d.x + d.w / 2, d.y + d.h / 2);
 		}
-		if (
-			keys["a"] &&
-			canMove["a"] &&
-			game.players[socket.id].x - game.players[socket.id].speed > 0
-		) {
-			game.players[socket.id].x -= game.players[socket.id].speed;
-			game.players[socket.id].spriteState = 4;
-			socket.emit("newSprite", 4);
+
+		// enemies
+		for (var enemy of game.enemies) {
+			if (checkCollision(enemy, a)) {
+				// TODO: stuff
+			}
+			enemy.update();
+			enemy.render(ctx);
 		}
-		if (
-			keys["s"] &&
-			canMove["s"] &&
-			game.players[socket.id].y + 25 + game.players[socket.id].speed <
-				cnv.height
-		) {
-			game.players[socket.id].y += game.players[socket.id].speed;
-			game.players[socket.id].spriteState = 3;
-			socket.emit("newSprite", 3);
+		// player logic
+		ctx.fillStyle = "white";
+		ctx.font = "16px Arial";
+		for (var id in game.players) {
+			p = game.players[id];
+			if (!p) break;
+			ctx.fillStyle = "black";
+			//ctx.fillRect(p.x, p.y, p.w, p.h); // <- delete this later, for testing
+
+			if (p.spriteState == 1)
+				ctx.drawImage(playerImage, p.w, p.h, p.w, p.h, p.x, p.y, p.w, p.h);
+			// w
+			else if (p.spriteState == 2)
+				ctx.drawImage(playerImage, p.w, 0, p.w, p.h, p.x, p.y, p.w, p.h);
+			// d
+			else if (p.spriteState == 3)
+				ctx.drawImage(playerImage, 0, p.h, p.w, p.h, p.x, p.y, p.w, p.h);
+			// s
+			else if (p.spriteState == 4)
+				ctx.drawImage(playerImage, 0, 0, p.w, p.h, p.x, p.y, p.w, p.h); // a
+			ctx.fillRect(
+				p.x + p.w / 2 - ctx.measureText(p.name).width / 2 - 4,
+				p.y - (12 + 16) - 2,
+				ctx.measureText(p.name).width + 8,
+				16 + 8
+			);
+			ctx.fillStyle = "white";
+			ctx.fillText(p.name, p.x + p.w / 2, p.y - 16);
+			ctx.fillStyle = "white";
+			if (id === socket.id) continue; // skip checking collision with self
+			var p = game.players[id];
+			let player = game.players[socket.id];
+			if (
+				checkCollision(
+					{ x: player.x, y: player.y - player.speed, w: player.w, h: player.h },
+					p
+				)
+			)
+				canMove["w"] = false;
+
+			if (
+				checkCollision(
+					{ x: player.x - player.speed, y: player.y, w: player.w, h: player.h },
+					p
+				)
+			)
+				canMove["a"] = false;
+
+			if (
+				checkCollision(
+					{ x: player.x, y: player.y + player.speed, w: player.w, h: player.h },
+					p
+				)
+			)
+				canMove["s"] = false;
+
+			if (
+				checkCollision(
+					{ x: player.x + player.speed, y: player.y, w: player.w, h: player.h },
+					p
+				)
+			)
+				canMove["d"] = false;
 		}
-		if (
-			keys["d"] &&
-			canMove["d"] &&
-			game.players[socket.id].x + 25 + game.players[socket.id].speed < cnv.width
-		) {
-			game.players[socket.id].x += game.players[socket.id].speed;
-			game.players[socket.id].spriteState = 2;
-			socket.emit("newSprite", 2);
+		// move
+		if (keys["w"] || keys["a"] || keys["s"] || keys["d"]) {
+			if (
+				keys["w"] &&
+				canMove["w"] &&
+				game.players[socket.id].y - game.players[socket.id].speed > 0
+			) {
+				game.players[socket.id].y -= game.players[socket.id].speed;
+				if (game.players[socket.id].spriteState != 1) {
+					socket.emit("newSprite", 1);
+				}
+				game.players[socket.id].spriteState = 1;
+			}
+			if (
+				keys["a"] &&
+				canMove["a"] &&
+				game.players[socket.id].x - game.players[socket.id].speed > 0
+			) {
+				game.players[socket.id].x -= game.players[socket.id].speed;
+				game.players[socket.id].spriteState = 4;
+				socket.emit("newSprite", 4);
+			}
+			if (
+				keys["s"] &&
+				canMove["s"] &&
+				game.players[socket.id].y + 25 + game.players[socket.id].speed <
+					cnv.height
+			) {
+				game.players[socket.id].y += game.players[socket.id].speed;
+				game.players[socket.id].spriteState = 3;
+				socket.emit("newSprite", 3);
+			}
+			if (
+				keys["d"] &&
+				canMove["d"] &&
+				game.players[socket.id].x + 25 + game.players[socket.id].speed <
+					cnv.width
+			) {
+				game.players[socket.id].x += game.players[socket.id].speed;
+				game.players[socket.id].spriteState = 2;
+				socket.emit("newSprite", 2);
+			}
 		}
-	}
-	if (Date.now() - lastUpdate > updateDelay) {
-		socket.emit("move", {
-			x: game.players[socket.id].x,
-			y: game.players[socket.id].y,
-		});
-		lastUpdate = Date.now();
+		// send move updates
+		if (Date.now() - lastUpdate > updateDelay) {
+			socket.emit("move", {
+				x: game.players[socket.id].x,
+				y: game.players[socket.id].y,
+			});
+			lastUpdate = Date.now();
+		}
+	} catch (Error) {
+		console.log(Error);
 	}
 	requestAnimationFrame(loop);
 }
