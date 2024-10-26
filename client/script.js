@@ -61,7 +61,8 @@ let game;
 
 let playerImage = new Image();
 playerImage.src = "/client/sprites/player.png";
-
+let doorImage = new Image();
+doorImage.src = "/client/sprites/door.png";
 const socket = io();
 
 socket.emit("name", name);
@@ -137,8 +138,7 @@ function loop() {
 				console.log(`going to ${d.to}`);
 				changeRoom(d.to);
 			}
-			ctx.fillStyle = "grey";
-			ctx.fillRect(d.x, d.y, d.w, d.h);
+			ctx.drawImage(doorImage, d.x, d.y, d.w, d.h);
 			ctx.fillStyle = "white";
 			ctx.textAlign = "center";
 			ctx.textBaseline = "middle";
@@ -184,38 +184,6 @@ function loop() {
 			ctx.fillStyle = "white";
 			if (id === socket.id) continue; // skip checking collision with self
 			var p = game.players[id];
-			let player = game.players[socket.id];
-			if (
-				checkCollision(
-					{ x: player.x, y: player.y - player.speed, w: player.w, h: player.h },
-					p
-				)
-			)
-				canMove["w"] = false;
-
-			if (
-				checkCollision(
-					{ x: player.x - player.speed, y: player.y, w: player.w, h: player.h },
-					p
-				)
-			)
-				canMove["a"] = false;
-
-			if (
-				checkCollision(
-					{ x: player.x, y: player.y + player.speed, w: player.w, h: player.h },
-					p
-				)
-			)
-				canMove["s"] = false;
-
-			if (
-				checkCollision(
-					{ x: player.x + player.speed, y: player.y, w: player.w, h: player.h },
-					p
-				)
-			)
-				canMove["d"] = false;
 		}
 		// move
 		if (keys["w"] || keys["a"] || keys["s"] || keys["d"]) {

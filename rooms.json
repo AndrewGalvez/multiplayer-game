@@ -17,6 +17,14 @@
 		"players": {},
 		"enemies": [],
 		"backgroundImage": "/client/sprites/dungeonBackground.png",
-		"doors": []
+		"doors": [
+			{
+				"x": 450,
+				"y": 750,
+				"w": 100,
+				"h": 50,
+				"to": "lobby"
+			}
+		]
 	}
 }
