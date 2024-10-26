@@ -108,7 +108,8 @@ io.on("connection", (socket) => {
 
 	socket.on("joinRoom", (data) => {
 		socket.join(data);
-		rooms[[...socket.rooms][0]].players[socket.id] = tempPlayer;
+		console.log(rooms);
+		rooms[data].players[socket.id] = tempPlayer;
 	});
 	socket.on("leaveRoom", (data) => {
 		tempPlayer = rooms[[...socket.rooms][0]].players[socket.id];
