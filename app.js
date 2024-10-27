@@ -42,6 +42,12 @@ io.on("connection", (socket) => {
 			io.to(currentRoom).emit("playerNewSprite", { id: socket.id, new: data });
 		}
 	});
+	socket.on("message", (data) => {
+		io.emit("playerMessage", {
+			name: data.name,
+			msg: data.msg,
+		});
+	});
 	socket.on("joinRoom", (data) => {
 		const currentRoom = [...socket.rooms][1]; // current room
 		if (currentRoom) {
