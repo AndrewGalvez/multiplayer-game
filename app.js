@@ -2,7 +2,6 @@ var fs = require("fs");
 var express = require("express");
 var http = require("http");
 var { Server } = require("socket.io");
-var readline = require("readline");
 var app = express();
 var server = http.createServer(app);
 var io = new Server(server);
@@ -11,40 +10,6 @@ app.use("/client", express.static(__dirname + "/client"));
 
 app.get("/", (req, res) => {
 	res.sendFile(__dirname + "/client/index.html");
-});
-
-const rl = readline.createInterface({
-	input: process.stdin,
-});
-
-const handleCommand = (command) => {
-	const args = command.split(" ");
-	const cmd = args[0];
-
-	if (cmd == "disconnect") {
-		const playerName = args[1];
-		for (const id in game.players) {
-			if (game.players[id].name === playerName) {
-				const socket = io.sockets.sockets.get(id);
-				if (socket) {
-					socket.emit("disconnectMe", {
-						reason: "Manually disconnected by server owner",
-					});
-					socket.disconnect();
-				}
-				break;
-			}
-		}
-	} else if (cmd == "quit") {
-		io.close();
-		process.exit();
-	} else {
-		console.log("[Commands] unknown command");
-	}
-};
-
-rl.on("line", (input) => {
-	handleCommand(input);
 });
 
 let rooms = JSON.parse(fs.readFileSync("rooms.json", "utf8"));
