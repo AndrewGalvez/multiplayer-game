@@ -14,6 +14,9 @@
 			canvas {
 				border: 5px solid white;
 			}
+			.serif{
+				font-family: sans-serif;
+			}
 			.block{
 				display: block;
 			}
@@ -24,20 +27,16 @@
 				width: 30px;
 				height: 30px;
 			}
+			.chatInput{
+				width: fit-content;
+			}
+			.bottom{
+				bottom: 0;
+			}
 		</style>
-<<<<<<< HEAD
-	</head>
-	<body>
-		<center><canvas id="canvas"></canvas></center>
-		<center><p>Press L to return to Lobby at any time</p></center>
-=======
 
 		<div style="width: 20%; float: left; word-wrap: break-word">
       </head>
-			<u>
-				<p id="pname" style="text-align: center; font-size: 32px"></p>
-			</u>
-			<p id="pscore" style="font-size: 24px">Score</p>
 		</div>
 		<div style="width: 20%; float: right">
 			<u>
@@ -49,16 +48,30 @@
 				style="white-space: pre-line; font-size: 24px"
 			></div>
 		</div>
-		<center><canvas></canvas></canvas>
+		<div class="inline" id="chatContainer">
+			<h1 class="serif">Server Chat</h1>
+			<p>Most recent message:</p>
+			<p id="recentMessage"></p>
+			<div id="messages">
+
+			</div>
+			<p>WARNING: Data sent through chat is NOT secure and can be accessed by any hacker. Do not send personal info or sensitive documents through chat.</p>
+			<form method="get">
+				<fieldset>
+				<input for="msg" class="chatInput" type="text" value="Send message to server chat...">
+				<input class="chatInput" type="submit" value="Send" id="sendChat">
+				</fieldset>
+			</form>
+		</div>
+		<center><canvas id="canvas"></canvas></canvas>
+			<p>Press L to return to Lobby at any time</p>
 			<input id="W" type="button" class="block" value="W">
 			<input id="A" type="button" class="inline" value="A">
 			<input id="S" type="button" class="inline" value="S">
 			<input id="D" type="button" class="inline" value="D">
-			<!--Whats the problem i think its in js its not like umm moving when it sets -->
 		</center>
->>>>>>> 7d4fc8518bdc33ba75f941ba1b022118c2001386
 
 		<script src="/socket.io/socket.io.js"></script>
 		<script src="client/script.js"></script>
-	</body>
-</html>
+	
+</body></html>
