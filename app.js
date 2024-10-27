@@ -84,11 +84,13 @@ io.on("connection", (socket) => {
 			socket.leave(currentRoom);
 			delete rooms[currentRoom].players[socket.id];
 		}
-		socket.join(data);
-		rooms[data].players[socket.id] = playerData;
-		setTimeout(() => {
-			io.to(data).emit("currentGame", rooms[data]);
-		}, 1000);
+		rooms[data.r].players[socket.id] = playerData;
+		if (data.d != null && data.d.newPos != undefined) {
+			rooms[data.r].players[socket.id].x = data.d.newPos.x;
+			rooms[data.r].players[socket.id].y = data.d.newPos.y;
+		}
+		socket.join(data.r);
+		io.to(data.r).emit("currentGame", rooms[data.r]);
 	});
 
 	socket.on("move", (data) => {

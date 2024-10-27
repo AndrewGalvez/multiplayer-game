@@ -25,17 +25,8 @@ function background() {
 	ctx.drawImage(bgImg, 0, 0, cnv.width, cnv.height);
 }
 
-function changeRoom(room) {
-	ctx.clearRect(0, 0, 1000, 800);
-	ctx.fillStyle = "black";
-	ctx.fillRect(0, 0, 1000, 800);
-	ctx.fillStyle = "white";
-	ctx.textAlign = "center";
-	ctx.fillText("Loading...", 500, 400);
-
-	requestAnimationFrame(() => {
-		socket.emit("joinRoom", room);
-	});
+function changeRoom(room, door) {
+	socket.emit("joinRoom", { r: room, d: door });
 }
 
 function getName() {
@@ -121,7 +112,7 @@ let lastUpdate = Date.now();
 let updateDelay = 5;
 let prevPos = [0, 0];
 function loop() {
-	if (keys["l"]) changeRoom("lobby");
+	if (keys["l"]) changeRoom("lobby", null);
 	try {
 		if (!game || !game.players || !game.players[socket.id]) {
 			console.log("Waiting for game state...");
@@ -136,9 +127,10 @@ function loop() {
 		for (var d of game.doors) {
 			if (checkCollision(a, d)) {
 				console.log(`going to ${d.to}`);
-				changeRoom(d.to);
+				changeRoom(d.to, d);
 			}
-			ctx.drawImage(doorImage, d.x, d.y, d.w, d.h);
+			ctx.fillStyle = "black";
+			ctx.fillRect(d.x, d.y, d.w, d.h);
 			ctx.fillStyle = "white";
 			ctx.textAlign = "center";
 			ctx.textBaseline = "middle";
