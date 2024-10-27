@@ -15,6 +15,7 @@ app.get("/", (req, res) => {
 let rooms = JSON.parse(fs.readFileSync("rooms.json", "utf8"));
 
 io.on("connection", (socket) => {
+	var passwordAttempts = 0;
 	const playerData = {
 		x: Math.floor(Math.random() * 196) * 5,
 		y: Math.floor(Math.random() * 155) * 5,
@@ -27,13 +28,38 @@ io.on("connection", (socket) => {
 		id: socket.id,
 	};
 
-	socket.join("lobby");
-	rooms["lobby"].players[socket.id] = playerData;
-
-	socket.on("name", (data) => {
-		rooms["lobby"].players[socket.id].name = data || "Guest";
-		io.to("lobby").emit("newPlayer", { id: socket.id, obj: playerData });
-		socket.emit("currentGame", rooms["lobby"]);
+	socket.on("login", (data) => {
+		var accounts = JSON.parse(fs.readFileSync("data/accounts.json"));
+		if (data.username in accounts) {
+			if (data.password == accounts[data.username].password) {
+				socket.join("lobby");
+				rooms["lobby"].players[socket.id] = playerData;
+				rooms["lobby"].players[socket.id].name;
+				io.to("lobby").emit("newPlayer", { id: socket.id, obj: playerData });
+				socket.emit("currentGame", rooms["lobby"]);
+			} else {
+				socket.emit("wrongPassword");
+				passwordAttempts++;
+				if (passwordAttempts >= 3) {
+					socket.disconnect(true);
+				}
+			}
+		} else {
+			socket.emit("accountDoesNotExist");
+		}
+	});
+	socket.on("createAccount", (data) => {
+		var accounts = JSON.parse(fs.readFileSync("data/accounts.json"));
+		console.table(accounts);
+		if (accounts[data.username]) {
+			socket.emit("accountExists");
+			return;
+		}
+		accounts[data.username];
+		accounts[data.username] ==
+			{ ...accounts[data.username], password: data.password };
+		fs.writeFileSync("data/accounts.json", JSON.stringify(accounts));
+		socket.emit("createdAccount");
 	});
 	socket.on("newSprite", (data) => {
 		const currentRoom = [...socket.rooms][1];
