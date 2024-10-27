@@ -58,8 +58,14 @@ io.on("connection", (socket) => {
 				msg: `${data.username} joined the game`,
 			});
 		} else {
-			console.log("account does not exist or password is incorrect");
-			socket.emit("accountDoesNotExist");
+			if (
+				accounts[data.username] &&
+				data.password != accounts[data.username].password
+			) {
+				socket.emit("wrongPassword");
+			} else {
+				socket.emit("accountDoesNotExist");
+			}
 		}
 	});
 
