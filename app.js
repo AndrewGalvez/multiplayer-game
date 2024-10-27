@@ -92,5 +92,5 @@ io.on("connection", (socket) => {
 
 // run server
 server.listen(5767, () => {
-	console.log("[Server] Listening on PORT 5767");
+	console.log("[Server] Listening on PORT http://localhost:5767");
 });

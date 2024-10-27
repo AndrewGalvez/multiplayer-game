@@ -1,5 +1,13 @@
 // lol
 console.log("if u hack ur a loser");
+function sendMessage() {
+	var i = document.getElementById("chatInput");
+	socket.emit("message", {
+		name: game.players[socket.id].name,
+		msg: i.value,
+	});
+	i.value = "";
+}
 function isMobile() {
 	return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
 		navigator.userAgent
@@ -78,6 +86,15 @@ socket.on("currentGame", (data) => {
 
 socket.on("playerDisconnect", (data) => {
 	delete game.players[data];
+});
+socket.on("playerMessage", (data) => {
+	var a = document.getElementById("chat-messages");
+	var b = document.createElement("p");
+	b.textContent = data.name.toString() + ": " + data.msg.toString();
+	a.appendChild(b);
+	if (a.childElementCount >= 16) {
+		a.removeChild(a.firstElementChild);
+	}
 });
 socket.on("playerMoved", (data) => {
 	if (data.id == socket.id) return;
@@ -266,10 +283,10 @@ if (isMobile()) {
 		keys["d"] = false;
 	});
 } else {
-	document.getElementById("W").display = "none";
-	document.getElementById("A").display = "none";
-	document.getElementById("S").display = "none";
-	document.getElementById("D").display = "none";
+	document.getElementById("W").style.opacity = 0;
+	document.getElementById("A").style.opacity = 0;
+	document.getElementById("S").style.opacity = 0;
+	document.getElementById("D").style.opacity = 0;
 }
 //how would we make the buttons bigger // do in html
 //use live share chat
