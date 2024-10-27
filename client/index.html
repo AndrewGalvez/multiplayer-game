@@ -6,6 +6,7 @@
 		<style>
 			p {
 				font-size: 20 px;
+				font-family: sans-serif;
 			}
 			html {
 				background-color: grey;
@@ -13,11 +14,49 @@
 			canvas {
 				border: 5px solid white;
 			}
+			.block{
+				display: block;
+			}
+			.inline{
+				display:inline-block;
+			}
+			input{
+				width: 30px;
+				height: 30px;
+			}
 		</style>
+<<<<<<< HEAD
 	</head>
 	<body>
 		<center><canvas id="canvas"></canvas></center>
 		<center><p>Press L to return to Lobby at any time</p></center>
+=======
+
+		<div style="width: 20%; float: left; word-wrap: break-word">
+      </head>
+			<u>
+				<p id="pname" style="text-align: center; font-size: 32px"></p>
+			</u>
+			<p id="pscore" style="font-size: 24px">Score</p>
+		</div>
+		<div style="width: 20%; float: right">
+			<u>
+				<p style="text-align: center; font-size: 32px">Leaderboard</p>
+			</u>
+
+			<div
+				id="Leaderboard"
+				style="white-space: pre-line; font-size: 24px"
+			></div>
+		</div>
+		<center><canvas></canvas></canvas>
+			<input id="W" type="button" class="block" value="W">
+			<input id="A" type="button" class="inline" value="A">
+			<input id="S" type="button" class="inline" value="S">
+			<input id="D" type="button" class="inline" value="D">
+			<!--Whats the problem i think its in js its not like umm moving when it sets -->
+		</center>
+>>>>>>> 7d4fc8518bdc33ba75f941ba1b022118c2001386
 
 		<script src="/socket.io/socket.io.js"></script>
 		<script src="client/script.js"></script>

@@ -1,3 +1,11 @@
+<<<<<<< HEAD
+=======
+// lol
+console.log("if u hack ur a loser");
+function isMobile() {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+>>>>>>> 7d4fc8518bdc33ba75f941ba1b022118c2001386
 function checkCollision(player1, player2) {
 	return (
 		player1.x < player2.x + player2.w &&
@@ -110,6 +118,7 @@ let canMove = {
 };
 let lastUpdate = Date.now();
 let updateDelay = 5;
+<<<<<<< HEAD
 let prevPos = [0, 0];
 function loop() {
 	if (keys["l"]) changeRoom("lobby", null);
@@ -230,9 +239,152 @@ function loop() {
 		}
 	} catch (Error) {
 		console.log(Error);
+=======
+let scoreText = document.getElementById("pscore");
+let leaderBoard = document.getElementById("Leaderboard");
+//buttons
+// hmm
+// letme fix this
+function loop() {
+	var a = game.players[socket.id];
+	setScoreText();
+	updateLeaderBoard(leaderBoard);
+	resetMove();
+	
+	background();
+	
+	// Banana
+	if (checkCollision(game.banana, a)) {
+		socket.emit("gotBanana");
+		game.banana.x = -10000; // move banana away so you cant collide with it multiple times
+		game.banana.y = -10000; // when you wait for the new position of the banana from the server
+	}
+	game.banana.render(ctx, game.banana.img);
+	
+	// player logic
+	ctx.fillStyle = "white";
+	ctx.font = "16px Arial";
+	for (var id in game.players) {
+		if (id === socket.id) continue; // skip checking collision with self
+		var p = game.players[id];
+		let player = game.players[socket.id];
+		if (
+			checkCollision(
+				{ x: player.x, y: player.y - player.speed, w: player.w, h: player.h },
+				p
+			)
+		)
+			canMove["w"] = false;
+			
+			if (
+				checkCollision(
+				{ x: player.x - player.speed, y: player.y, w: player.w, h: player.h },
+				p
+			)
+		)
+			canMove["a"] = false;
+
+			if (
+			checkCollision(
+				{ x: player.x, y: player.y + player.speed, w: player.w, h: player.h },
+				p
+			)
+		)
+		canMove["s"] = false;
+
+		if (
+			checkCollision(
+				{ x: player.x + player.speed, y: player.y, w: player.w, h: player.h },
+				p
+			)
+		)
+			canMove["d"] = false;
+	}
+	for (var id in game.players) {
+		p = game.players[id];
+		ctx.fillStyle = "red";
+		ctx.fillRect(p.x, p.y, 25, 25); // <- delete this later, for testing
+		
+		let newSprite = new Image();
+		newSprite.src = spriteSheet[p.spriteState];
+		ctx.drawImage(newSprite, p.x, p.y);
+		ctx.fillText(
+			p.name + ` (${p.score})`,
+			p.x + 12.5 - ctx.measureText(p.name + ` (${p.score})`).width / 2,
+			p.y - 12
+		);
+		ctx.fillStyle = "white";
+	}
+	// move
+	if (keys["w"] || keys["a"] || keys["s"] || keys["d"]) {
+		if (
+			keys["w"] &&
+			canMove["w"] &&
+			game.players[socket.id].y - game.players[socket.id].speed > 0
+		) {
+			game.players[socket.id].y -= game.players[socket.id].speed;
+			game.players[socket.id].spriteState = 1;
+			socket.emit("newSprite", 1);
+		}
+		if (
+			keys["a"] &&
+			canMove["a"] &&
+			game.players[socket.id].x - game.players[socket.id].speed > 0
+		) {
+			game.players[socket.id].x -= game.players[socket.id].speed;
+			game.players[socket.id].spriteState = 4;
+			socket.emit("newSprite", 4);
+		}
+		if (
+			keys["s"] &&
+			canMove["s"] &&
+			game.players[socket.id].y + 25 + game.players[socket.id].speed <
+			cnv.height
+		) {
+			game.players[socket.id].y += game.players[socket.id].speed;
+			game.players[socket.id].spriteState = 3;
+			socket.emit("newSprite", 3);
+		}
+		if (
+			keys["d"] &&
+			canMove["d"] &&
+			game.players[socket.id].x + 25 + game.players[socket.id].speed < cnv.width
+		) {
+			game.players[socket.id].x += game.players[socket.id].speed;
+			game.players[socket.id].spriteState = 2;
+			socket.emit("newSprite", 2);
+		}
+	}
+	// send updates to server
+	if (Date.now() - lastUpdate >= updateDelay && game.players[socket.id]) {
+		socket.emit("move", {
+			x: game.players[socket.id].x,
+			y: game.players[socket.id].y,
+		});
+		
+		lastUpdate = Date.now();
+>>>>>>> 7d4fc8518bdc33ba75f941ba1b022118c2001386
 	}
 	requestAnimationFrame(loop);
 }
+if (isMobile()) {
+	document.getElementById('W').addEventListener ("mousedown", () => {keys["w"] = true;});
+	document.getElementById('A').addEventListener ("mousedown", () => {keys["a"] = true;});
+	document.getElementById('S').addEventListener ("mousedown", () => {keys["s"] = true;});
+	document.getElementById('D').addEventListener ("mousedown", () => {keys["d"] = true});
+	document.getElementById('W').addEventListener ("mouseup", () => {keys["w"] = false;});
+	document.getElementById('A').addEventListener ("mouseup", () => {keys['a'] = false;});
+	document.getElementById('S').addEventListener ("mouseup", () => {keys["s"] = false;});
+	document.getElementById('D').addEventListener ("mouseup", () => {keys["d"] = false});
+}
+else {
+	document.getElementById('W').display = "none";
+	document.getElementById('A').display = "none";
+	document.getElementById('S').display = "none";
+	document.getElementById('D').display = "none";
+}
+//how would we make the buttons bigger // do in html 
+//use live share chat
 
 loop();
 
