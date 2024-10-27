@@ -45,100 +45,24 @@ function changeRoom(room, door) {
 	socket.emit("joinRoom", { r: room, d: door });
 }
 
-function getName() {
-    let attempts = 0;
-    const maxAttempts = 3;
-    
-    while (attempts < maxAttempts) {
-        try {
-            const name = prompt("Enter your username: (don't enter anything if you need to sign up)")
-                ?.substring(0, 14)
-                .trim()
-                .replaceAll(" ", "-");
-                
-            if (!name || name.trim() === "") {
-                window.location.assign("/client/accountCreate.html");
-                return;
-            }
-            
-            return name;
-            
-        } catch (error) {
-            attempts++;
-            if (attempts === maxAttempts) {
-                window.location.assign("/client/accountCreate.html");
-                return;
-            }
-            alert(`Failed to get name. Attempt ${attempts} of ${maxAttempts}`);
-        }
-    }
-    
-    return "blank";
+function getName(p) {
+	return prompt(p + "Enter Username");
 }
 
 function getPass() {
-    let attempts = 0;
-    const maxAttempts = 3;
-    
-    while (attempts < maxAttempts) {
-        try {
-            const password = prompt("Enter your password: (don't enter anything if you need to sign up)")
-                ?.trim()
-                .replaceAll(" ", "-") || "blank";
-                
-            if (password === null || password === undefined) {
-                window.location.assign("/client/accountCreate.html");
-                return;
-            }
-            
-            if (password.trim() === "") {
-                window.location.assign("/client/accountCreate.html");
-                return;
-            }
-            
-            return password;
-            
-        } catch (error) {
-            attempts++;
-            if (attempts === maxAttempts) {
-                window.location.assign("/client/accountCreate.html");
-                return;
-            }
-            alert(`Failed to get password. Attempt ${attempts} of ${maxAttempts}`);
-        }
-    }
-    
-    window.location.assign("/client/accountCreate.html");
-    return null;
+	return prompt("Password: ");
 }
-let name = getName();
-var Sname = name;
-let password = getPass();
-socket.emit("login", {Sname, password});
+
 let game;
-document.getElementById('createAccountForm').addEventListener("submit", (event) => {
-    event.preventDefault(); // Prevent default form submission
-    
-    const form = document.getElementById('createAccountForm');
-    const formData = new FormData(form);
-    
-    // Get values from form fields
-    const username = formData.get('usernamePost');
-    const password = formData.get('passwordPost');
-    
-    // Emit the account creation event
-    socket.emit("createAccount", {
-        username: username,
-        password: password
-    });
-});
 let playerImage = new Image();
 playerImage.src = "/client/sprites/player.png";
 let doorImage = new Image();
 doorImage.src = "/client/sprites/door.png";
 const socket = io();
 
-socket.emit("name", name);
+var a = getName("");
+var b = getPass();
+socket.emit("login", { username: a, password: b });
 
 socket.on("newPlayer", (data) => {
 	game.players[data.id] = data.obj;
@@ -154,6 +78,11 @@ socket.on("currentGame", (data) => {
 socket.on("playerDisconnect", (data) => {
 	delete game.players[data];
 });
+socket.on("username", (data) => {
+	if (!game.players[data.id]) game.players[data.id] = {};
+	game.players[data.id].name = data.username;
+});
+
 socket.on("playerMessage", (data) => {
 	var a = document.getElementById("chat-messages");
 	var b = document.createElement("p");
@@ -163,12 +92,43 @@ socket.on("playerMessage", (data) => {
 		a.removeChild(a.firstElementChild);
 	}
 });
-var attemptsPassw = 3;
 socket.on("wrongPassword", (data) => {
-if(attemptsPassw !== 0){
-	getName()
-	attemptsPassw += -1;
-}
+	var a = getName("Wrong Password, ");
+	var b = getPass();
+	socket.emit("login", { username: a, password: b });
+});
+socket.on("accountDoesNotExist", () => {
+	while (true) {
+		var a = confirm("Account Not found. Create new Account?");
+		if (a) {
+			var c = getName("Choose: ");
+			var d = getPass();
+			socket.emit("createAccount", { username: c, password: d });
+			break;
+		} else {
+			window.location.reload();
+		}
+	}
+});
+socket.on("accountExists", () => {
+	alert("Account already exists.");
+	while (true) {
+		var a = confirm("Create new Account?");
+		if (a) {
+			var c = getName("Choose: ");
+			var d = getPass();
+			socket.emit("createAccount", { username: c, password: d });
+			break;
+		} else {
+			window.location.reload();
+		}
+	}
+});
+socket.on("createdAccount", () => {
+	alert("Account successfully created. Please login now.");
+	var a = getName("");
+	var b = getPass();
+	socket.emit("login", { username: a, password: b });
 });
 socket.on("playerMoved", (data) => {
 	if (data.id == socket.id) return;
@@ -362,8 +322,6 @@ if (isMobile()) {
 	document.getElementById("S").style.opacity = 0;
 	document.getElementById("D").style.opacity = 0;
 }
-//how would we make the buttons bigger // do in html
-//use live share chat
 
 loop();
 

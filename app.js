@@ -29,37 +29,36 @@ io.on("connection", (socket) => {
 	};
 
 	socket.on("login", (data) => {
+		console.log("login");
 		var accounts = JSON.parse(fs.readFileSync("data/accounts.json"));
-		if (data.username in accounts) {
-			if (data.password == accounts[data.username].password) {
-				socket.join("lobby");
-				rooms["lobby"].players[socket.id] = playerData;
-				rooms["lobby"].players[socket.id].name;
-				io.to("lobby").emit("newPlayer", { id: socket.id, obj: playerData });
-				socket.emit("currentGame", rooms["lobby"]);
-			} else {
-				socket.emit("wrongPassword");
-				passwordAttempts++;
-				if (passwordAttempts >= 3) {
-					socket.disconnect(true);
-				}
-			}
+		if (
+			accounts[data.username] &&
+			data.password === accounts[data.username].password
+		) {
+			playerData.name = data.username;
+			socket.join("lobby");
+			rooms["lobby"].players[socket.id] = playerData;
+			io.to("lobby").emit("newPlayer", { id: socket.id, obj: playerData });
+			socket.emit("currentGame", rooms["lobby"]);
+			socket.emit("username", { id: socket.id, username: data.username });
+			console.log("joined successfully");
 		} else {
+			console.log("account does not exist or password is incorrect");
 			socket.emit("accountDoesNotExist");
 		}
 	});
+
 	socket.on("createAccount", (data) => {
 		var accounts = JSON.parse(fs.readFileSync("data/accounts.json"));
-		console.table(accounts);
 		if (accounts[data.username]) {
+			console.log("account exists");
 			socket.emit("accountExists");
-			return;
+		} else {
+			accounts[data.username] = { password: data.password }; // Corrected account assignment
+			fs.writeFileSync("data/accounts.json", JSON.stringify(accounts, null, 2)); // Pretty-print JSON
+			console.log("created account");
+			socket.emit("createdAccount");
 		}
-		accounts[data.username];
-		accounts[data.username] ==
-			{ ...accounts[data.username], password: data.password };
-		fs.writeFileSync("data/accounts.json", JSON.stringify(accounts));
-		socket.emit("createdAccount");
 	});
 	socket.on("newSprite", (data) => {
 		const currentRoom = [...socket.rooms][1];
@@ -81,7 +80,11 @@ io.on("connection", (socket) => {
 			socket.leave(currentRoom);
 			delete rooms[currentRoom].players[socket.id];
 		}
-		rooms[data.r].players[socket.id] = playerData;
+		rooms[data.r].players[socket.id] = {
+			...playerData,
+			name: playerData.name || data.username,
+		}; // Preserve name if already set
+
 		if (data.d != null && data.d.newPos != undefined) {
 			rooms[data.r].players[socket.id].x = data.d.newPos.x;
 			rooms[data.r].players[socket.id].y = data.d.newPos.y;
