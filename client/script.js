@@ -1,5 +1,6 @@
 // lol
 console.log("if u hack ur a loser");
+const querySearch = window.location.search;
 function sendMessage() {
 	var i = document.getElementById("chatInput");
 	socket.emit("message", {
@@ -45,26 +46,92 @@ function changeRoom(room, door) {
 }
 
 function getName() {
-	var name = "";
-	while (true) {
-		try {
-			name =
-				prompt("Pick a name: ").substring(0, 14).trim().replaceAll(" ", "-") ||
-				"blank";
-		} catch {
-			name = "blank";
-		}
+    let attempts = 0;
+    const maxAttempts = 3;
+    
+    while (attempts < maxAttempts) {
+        try {
+            const name = prompt("Enter your username: (don't enter anything if you need to sign up)")
+                ?.substring(0, 14)
+                .trim()
+                .replaceAll(" ", "-");
+                
+            if (!name || name.trim() === "") {
+                window.location.assign("/client/accountCreate.html");
+                return;
+            }
+            
+            return name;
+            
+        } catch (error) {
+            attempts++;
+            if (attempts === maxAttempts) {
+                window.location.assign("/client/accountCreate.html");
+                return;
+            }
+            alert(`Failed to get name. Attempt ${attempts} of ${maxAttempts}`);
+        }
+    }
+    
+    return "blank";
+}
 
-		if (name == null || name == undefined) name = "blank";
-		else if (name.trim() === "") name = "blank";
-		else break;
-	}
-	return name;
+function getPass() {
+    let attempts = 0;
+    const maxAttempts = 3;
+    
+    while (attempts < maxAttempts) {
+        try {
+            const password = prompt("Enter your password: (don't enter anything if you need to sign up)")
+                ?.trim()
+                .replaceAll(" ", "-") || "blank";
+                
+            if (password === null || password === undefined) {
+                window.location.assign("/client/accountCreate.html");
+                return;
+            }
+            
+            if (password.trim() === "") {
+                window.location.assign("/client/accountCreate.html");
+                return;
+            }
+            
+            return password;
+            
+        } catch (error) {
+            attempts++;
+            if (attempts === maxAttempts) {
+                window.location.assign("/client/accountCreate.html");
+                return;
+            }
+            alert(`Failed to get password. Attempt ${attempts} of ${maxAttempts}`);
+        }
+    }
+    
+    window.location.assign("/client/accountCreate.html");
+    return null;
 }
 let name = getName();
-
+var Sname = name;
+let password = getPass();
+socket.emit("login", {Sname, password});
 let game;
-
+document.getElementById('createAccountForm').addEventListener("submit", (event) => {
+    event.preventDefault(); // Prevent default form submission
+    
+    const form = document.getElementById('createAccountForm');
+    const formData = new FormData(form);
+    
+    // Get values from form fields
+    const username = formData.get('usernamePost');
+    const password = formData.get('passwordPost');
+    
+    // Emit the account creation event
+    socket.emit("createAccount", {
+        username: username,
+        password: password
+    });
+});
 let playerImage = new Image();
 playerImage.src = "/client/sprites/player.png";
 let doorImage = new Image();
@@ -95,6 +162,13 @@ socket.on("playerMessage", (data) => {
 	if (a.childElementCount >= 16) {
 		a.removeChild(a.firstElementChild);
 	}
+});
+var attemptsPassw = 3;
+socket.on("wrongPassword", (data) => {
+if(attemptsPassw !== 0){
+	getName()
+	attemptsPassw += -1;
+}
 });
 socket.on("playerMoved", (data) => {
 	if (data.id == socket.id) return;
