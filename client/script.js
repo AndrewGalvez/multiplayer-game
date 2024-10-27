@@ -282,10 +282,10 @@ if (isMobile()) {
 	document.getElementById('D').addEventListener ("mouseup", () => {keys["d"] = false});
 }
 else {
-	document.getElementById('W').style.visibility = false;
-	document.getElementById('A').style.visibility = false;
-	document.getElementById('S').style.visibility = false;
-	document.getElementById('D').style.visibility = false;
+	document.getElementById('W').display = "none";
+	document.getElementById('A').display = "none";
+	document.getElementById('S').display = "none";
+	document.getElementById('D').display = "none";
 }
 //how would we make the buttons bigger // do in html 
 //use live share chat
