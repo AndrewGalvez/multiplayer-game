@@ -30,7 +30,18 @@ io.on("connection", (socket) => {
 
 	socket.on("login", (data) => {
 		console.log("login");
-		var accounts = JSON.parse(fs.readFileSync("data/accounts.json"));
+		if (data.username.trim() == "") {
+			return socket.emit("accountDoesNotExist");
+		}
+
+		let accounts;
+		try {
+			accounts = JSON.parse(fs.readFileSync("data/accounts.json", "utf8"));
+		} catch (err) {
+			console.error("Error reading accounts file:", err);
+			return socket.emit("accountDoesNotExist");
+		}
+
 		if (
 			accounts[data.username] &&
 			data.password === accounts[data.username].password
@@ -42,6 +53,10 @@ io.on("connection", (socket) => {
 			socket.emit("currentGame", rooms["lobby"]);
 			socket.emit("username", { id: socket.id, username: data.username });
 			console.log("joined successfully");
+			io.emit("playerMessage", {
+				sender: "Server",
+				msg: `${data.username} joined the game`,
+			});
 		} else {
 			console.log("account does not exist or password is incorrect");
 			socket.emit("accountDoesNotExist");
