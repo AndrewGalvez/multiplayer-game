@@ -6,12 +6,23 @@
 		<style>
 			p {
 				font-size: 20 px;
+				font-family: sans-serif;
 			}
 			html {
 				background-color: grey;
 			}
 			canvas {
 				border: 5px solid white;
+			}
+			.block{
+				display: block;
+			}
+			.inline{
+				display:inline-block;
+			}
+			input{
+				width: 30px;
+				height: 30px;
 			}
 		</style>
 
@@ -32,7 +43,13 @@
 				style="white-space: pre-line; font-size: 24px"
 			></div>
 		</div>
-		<center><canvas></canvas></center>
+		<center><canvas></canvas></canvas>
+			<input id="W" type="button" class="block" value="W">
+			<input id="A" type="button" class="inline" value="A">
+			<input id="S" type="button" class="inline" value="S">
+			<input id="D" type="button" class="inline" value="D">
+			<!--Whats the problem i think its in js its not like umm moving when it sets -->
+		</center>
 
 		<script src="/socket.io/socket.io.js"></script>
 		<script src="client/script.js"></script>
