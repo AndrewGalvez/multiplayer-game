@@ -1,4 +1,45 @@
+
 // lol
+let game;
+function moveTowards(obj, targetX, targetY, durationInSeconds) {
+    // Cancel any existing movement
+    if (obj.currentMovement) {
+        cancelAnimationFrame(obj.currentMovement);
+    }
+
+    // Calculate the total distance to move
+    const dx = targetX - obj.x;
+    const dy = targetY - obj.y;
+    
+    // Store the starting position
+    const startX = obj.x;
+    const startY = obj.y;
+    
+    // Store start time
+    const startTime = Date.now();
+    
+    function update() {
+        // Calculate how much time has passed
+        const elapsedTime = (Date.now() - startTime) / 1000;
+        
+        if (elapsedTime < durationInSeconds) {
+            // Calculate new position based on elapsed time
+            obj.x = startX + (dx * (elapsedTime / durationInSeconds));
+            obj.y = startY + (dy * (elapsedTime / durationInSeconds));
+            
+            // Store the animation frame ID so we can cancel it if needed
+            obj.currentMovement = requestAnimationFrame(update);
+        } else {
+            // Ensure final position is exact
+            obj.x = targetX;
+            obj.y = targetY;
+            obj.currentMovement = null;
+        }
+    }
+    
+    // Start the movement
+    obj.currentMovement = requestAnimationFrame(update);
+}[1]
 console.log("if u hack ur a loser");
 const querySearch = window.location.search;
 function sendMessage() {
@@ -53,7 +94,6 @@ function getPass() {
 	return prompt("Password: ");
 }
 
-let game;
 let playerImage = new Image();
 playerImage.src = "/client/sprites/player.png";
 let doorImage = new Image();
@@ -64,9 +104,6 @@ var a = getName("");
 var b = getPass();
 socket.emit("login", { username: a, password: b });
 
-socket.on("newPlayer", (data) => {
-	game.players[data.id] = data.obj;
-});
 socket.on("currentGame", (data) => {
 	game = data;
 	if (!game.players[socket.id]) {
@@ -74,10 +111,14 @@ socket.on("currentGame", (data) => {
 		return;
 	}
 });
+socket.on("newPlayer", (data) => {
+	game.players[data.id] = data.obj;
+});
 
 socket.on("playerDisconnect", (data) => {
 	delete game.players[data];
 });
+
 socket.on("username", (data) => {
 	if (!game.players[data.id]) game.players[data.id] = {};
 	game.players[data.id].name = data.username;
@@ -92,11 +133,13 @@ socket.on("playerMessage", (data) => {
 		a.removeChild(a.firstElementChild);
 	}
 });
+
 socket.on("wrongPassword", (data) => {
 	var a = getName("Wrong Password, ");
 	var b = getPass();
 	socket.emit("login", { username: a, password: b });
 });
+
 socket.on("accountDoesNotExist", () => {
 	while (true) {
 		var a = confirm("Account Not found. Create new Account?");
@@ -110,6 +153,7 @@ socket.on("accountDoesNotExist", () => {
 		}
 	}
 });
+
 socket.on("accountExists", () => {
 	alert("Account already exists.");
 	while (true) {
@@ -124,29 +168,44 @@ socket.on("accountExists", () => {
 		}
 	}
 });
+
 socket.on("createdAccount", () => {
 	alert("Account successfully created. Please login now.");
 	var a = getName("");
 	var b = getPass();
 	socket.emit("login", { username: a, password: b });
 });
+
 socket.on("playerMoved", (data) => {
 	if (data.id == socket.id) return;
 	if (!game) return;
 	game.players[data.id].x = data.x;
 	game.players[data.id].y = data.y;
 });
+socket.on("enemyMoved", (data) => {
+	game.enemies[data.id];
+	game.enemies[data.id].x = data.x;
+	game.enemies[data.id].y = data.y;
+});
 socket.on("playerNewSprite", (data) => {
 	game.players[data.id].spriteState = data.new;
 });
+
+var enemies;
+socket.on("currentEnemies", (data) => {
+	enemies = data;
+});
+
 socket.on("playerGotBanana", (data) => {
 	game.players[data.id].score += 1;
 	game.banana.x = data.newX;
 	game.banana.y = data.newY;
 });
+
 socket.on("disconnectMe", (data) => {
 	window.location.assign(`/client/disconnect.html?reason=${data.reason}`);
 });
+
 socket.on("disconnect", () => {
 	window.alert(
 		"You have lost connection to the server for an unknown reason. Continue to attempt to reconnect."
@@ -235,6 +294,18 @@ function loop() {
 			if (id === socket.id) continue; // skip checking collision with self
 			var p = game.players[id];
 		}
+		var enemyImage = new Image(25, 25)
+		enemyImage.src = "/client/sprites/wierd enemy.png"
+		if (game.enemies !== null) {
+			for (var en in game.enemies) {
+				let e = game.enemies[en];
+				if (!e) continue;
+				
+				// Draw enemy with proper dimensions
+				if (enemyImage.complete){
+				ctx.drawImage(enemyImage, e.x, e.y, e.w, e.h);
+			}};
+		}[1]
 		// move
 		if (keys["w"] || keys["a"] || keys["s"] || keys["d"]) {
 			if (

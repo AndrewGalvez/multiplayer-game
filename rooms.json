@@ -1,7 +1,7 @@
 {
 	"lobby": {
 		"players": {},
-		"enemies": [],
+		"enemies": {},
 		"backgroundImage": "/client/sprites/bananaValley.png",
 		"doors": [
 			{

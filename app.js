@@ -2,6 +2,7 @@ var fs = require("fs");
 var express = require("express");
 var http = require("http");
 var { Server } = require("socket.io");
+const { EventEmitterAsyncResource } = require("events");
 var app = express();
 var server = http.createServer(app);
 var io = new Server(server);
@@ -139,6 +140,101 @@ io.on("connection", (socket) => {
 		io.emit("playerDisconnect", socket.id);
 	});
 });
+var enemyNumber = 0;
+	io.on("createEnemy", () =>{
+	const currentRoom = [...socket.rooms][1];
+	let enemyData = {
+		x: Math.floor(Math.random() * 196) * 5,
+		y: Math.floor(Math.random() * 155) * 5,
+		w: 25,
+		width: 25,
+		h: 25,
+		height:25,
+		lastKnownX: null,
+		lastKnownY: null,
+	}
+	rooms[currentRoom].enemies[enemyNumber] = enemyData;
+	enemyNumber += 1;
+});
+const createEnemy = setInterval(() =>{
+if (rooms["dungeon"].players !== null){
+	io.emit("createEnemy");
+	for (let mID in rooms["dungeon"].enemies){
+		const fCPResult = findClosestPlayer(mID, "dungeon");
+		moveTowards(rooms["dungeon"].enemies[mID], fCPResult.x, fCPResult.y, 6);
+		io.emit("enemyMoved", {id: mID})
+	};
+};
+}, 10000);
+function loop(){
+	if (rooms["dungeon"].players !== null){
+	for (let mID in rooms["dungeon"].enemies){
+		if (rooms["dungeon"].enemies[mID].lastKnownX !== rooms["dungeon"].enemies[mID].x){
+			io.emit("enemyMoved", ({id: mID, x: rooms["dungeon"].enemies[mID].x, y: rooms["dungeon"].enemies[mID].y}));
+			rooms["dungeon"].enemies[mID].lastKnownX = rooms["dungeon"].enemies[mID].x;
+		};
+		if (rooms["dungeon"].enemies[mID].lastKnownY !== rooms["dungeon"].enemies[mID].y){
+			io.emit("enemyMoved", ({id: mID, x: rooms["dungeon"].enemies[mID].x, y: rooms["dungeon"].enemies[mID].y}));
+			rooms["dungeon"].enemies[mID].lastKnownY = rooms["dungeon"].enemies[mID].y;
+		};
+	}};
+	requestAnimationFrame(loop);
+}
+function findClosestPlayer(enemy, rooms){
+	var shortestDistX = infinity;
+	var shortestDistY = infinity;
+	var shortestDistPlayer;
+	for (let id in rooms[rooms].players){
+		
+		if(rooms[rooms].players[id].x <= shortestDistX){
+			if (rooms[rooms].players[id].x <= shortestDistX <= rooms[rooms].players[id].x <= shortestDistX){
+				shortestDistX = rooms[rooms].players[id].x;
+				shortestDistY = rooms[rooms].players[id].y;
+				shortestDistPlayer = rooms[rooms].players[id];
+			};
+		};
+	};
+	return shortestDistPlayer;
+};
+function moveTowards(obj, targetX, targetY, durationInSeconds) {
+    // Cancel any existing movement
+    if (obj.currentMovement) {
+        cancelAnimationFrame(obj.currentMovement);
+    }
+
+    // Calculate the total distance to move
+    const dx = targetX - obj.x;
+    const dy = targetY - obj.y;
+    
+    // Store the starting position
+    const startX = obj.x;
+    const startY = obj.y;
+    
+    // Store start time
+    const startTime = Date.now();
+    
+    function update() {
+        // Calculate how much time has passed
+        const elapsedTime = (Date.now() - startTime) / 1000;
+        
+        if (elapsedTime < durationInSeconds) {
+            // Calculate new position based on elapsed time
+            obj.x = startX + (dx * (elapsedTime / durationInSeconds));
+            obj.y = startY + (dy * (elapsedTime / durationInSeconds));
+            
+            // Store the animation frame ID so we can cancel it if needed
+            obj.currentMovement = requestAnimationFrame(update);
+        } else {
+            // Ensure final position is exact
+            obj.x = targetX;
+            obj.y = targetY;
+            obj.currentMovement = null;
+        }
+    }
+    
+    // Start the movement
+    obj.currentMovement = requestAnimationFrame(update);
+}[1]
 
 // run server
 server.listen(5767, () => {
