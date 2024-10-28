@@ -1,6 +1,9 @@
 
 // lol
-let game;
+let game = {
+	players: {},
+	enemies: [],
+};
 function moveTowards(obj, targetX, targetY, durationInSeconds) {
     // Cancel any existing movement
     if (obj.currentMovement) {
@@ -81,9 +84,10 @@ function background() {
 	bgImg.src = game.backgroundImage;
 	ctx.drawImage(bgImg, 0, 0, cnv.width, cnv.height);
 }
-
+var currentRoom = "lobby";
 function changeRoom(room, door) {
 	socket.emit("joinRoom", { r: room, d: door });
+	currentRoom = room;
 }
 
 function getName(p) {
@@ -115,6 +119,14 @@ socket.on("newPlayer", (data) => {
 	game.players[data.id] = data.obj;
 });
 
+socket.on("getDMonsters", (data) => {
+	game.enemies = data;
+});
+var shield = {x: 0, y: 0, w: 25, h: 25, lastX: 0, lastY: 0, visible: false}
+socket.on("sendShieldData", (data) => {
+	shield = data;
+});
+
 socket.on("playerDisconnect", (data) => {
 	delete game.players[data];
 });
@@ -125,6 +137,7 @@ socket.on("username", (data) => {
 });
 
 socket.on("playerMessage", (data) => {
+	if (data.name == undefined) return
 	var a = document.getElementById("chat-messages");
 	var b = document.createElement("p");
 	b.textContent = data.name.toString() + ": " + data.msg.toString();
@@ -183,6 +196,7 @@ socket.on("playerMoved", (data) => {
 	game.players[data.id].y = data.y;
 });
 socket.on("enemyMoved", (data) => {
+	if (undefined == game.enemies) game[enemies] = []
 	game.enemies[data.id];
 	game.enemies[data.id].x = data.x;
 	game.enemies[data.id].y = data.y;
@@ -191,9 +205,8 @@ socket.on("playerNewSprite", (data) => {
 	game.players[data.id].spriteState = data.new;
 });
 
-var enemies;
-socket.on("currentEnemies", (data) => {
-	enemies = data;
+socket.on("currentDEnemies", (data) => {
+	game.enemies = data;
 });
 
 socket.on("playerGotBanana", (data) => {
@@ -217,6 +230,7 @@ const cnv = document.getElementById("canvas");
 const ctx = cnv.getContext("2d");
 cnv.width = 1000;
 cnv.height = 800;
+socket.emit("getCnvData", cnv);
 
 let keys = {};
 let canMove = {
@@ -241,26 +255,49 @@ function loop() {
 
 		background();
 		// doors
-		for (var d of game.doors) {
-			if (checkCollision(a, d)) {
-				console.log(`going to ${d.to}`);
-				changeRoom(d.to, d);
+		if (game.doors) {
+			for (var d of game.doors) {
+				if (checkCollision(a, d)) {
+					console.log(`going to ${d.to}`);
+					changeRoom(d.to, d);
+				}
+				ctx.fillStyle = "black";
+				ctx.fillRect(d.x, d.y, d.w, d.h);
+				ctx.fillStyle = "white";
+				ctx.textAlign = "center";
+				ctx.textBaseline = "middle";
+				ctx.fillText(d.to, d.x + d.w / 2, d.y + d.h / 2);
 			}
-			ctx.fillStyle = "black";
-			ctx.fillRect(d.x, d.y, d.w, d.h);
-			ctx.fillStyle = "white";
-			ctx.textAlign = "center";
-			ctx.textBaseline = "middle";
-			ctx.fillText(d.to, d.x + d.w / 2, d.y + d.h / 2);
 		}
-
+		// shield
+		var shieldImage = new Image(25, 25)
+		shieldImage.src = "/client/sprites/shield.png"
+		if (shield.visible){ctx.drawImage(shieldImage, shield.x, shield.y, shield.w, shield.h);};
 		// enemies
-		for (var enemy of game.enemies) {
-			if (checkCollision(enemy, a)) {
-				// TODO: stuff
+		if (game.enemies !== undefined) {
+			for (var enemy of game.enemies) {
+				if (checkCollision(enemy, a)) {
+					if (a.shield === false){
+					returnToLobby(5);
+
+					ctx.font = '40px Papyrus'
+					ctx.fillStyle = 'Red'
+					ctx.fillText("You died.", 0, 0);
+
+					canMove["w"] = false;
+					canMove["a"] = false;
+					canMove["s"] = false;
+					canMove["d"] = false;
+					}
+					else {
+						socket.emit("createShield", null);
+						a.shield = false;
+					}
+				}
+				//not defined = jail/be a comment time
+				//enemy.update();
+				//enemy.render(ctx);
 			}
-			enemy.update();
-			enemy.render(ctx);
 		}
 		// player logic
 		ctx.fillStyle = "white";
@@ -297,7 +334,7 @@ function loop() {
 		var enemyImage = new Image(25, 25)
 		enemyImage.src = "/client/sprites/wierd enemy.png"
 		if (game.enemies !== null) {
-			for (var en in game.enemies) {
+			for (var en of game.enemies) {
 				let e = game.enemies[en];
 				if (!e) continue;
 				
@@ -396,6 +433,11 @@ if (isMobile()) {
 
 loop();
 
+function returnToLobby(sec){
+	setTimeout( () => {
+		changeRoom("lobby", null);
+	}, sec * 1000)
+}
 document.onkeydown = (e) => {
 	keys[e.key] = true;
 };

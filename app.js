@@ -27,6 +27,7 @@ io.on("connection", (socket) => {
 		score: 0,
 		spriteState: 1,
 		id: socket.id,
+		shield: false,
 	};
 
 	socket.on("login", (data) => {
@@ -140,12 +141,16 @@ io.on("connection", (socket) => {
 		io.emit("playerDisconnect", socket.id);
 	});
 });
-var enemyNumber = 0;
+var cnv;
+	io.on("getCnvData", (data) =>{
+		cnv = data;
+	});
+	var enemyNumber = 0;
 	io.on("createEnemy", () =>{
 	const currentRoom = [...socket.rooms][1];
 	let enemyData = {
-		x: Math.floor(Math.random() * 196) * 5,
-		y: Math.floor(Math.random() * 155) * 5,
+		x: Math.floor(Math.random() * cnv.width) * 5,
+		y: Math.floor(Math.random() * cnv.height) * 5,
 		w: 25,
 		width: 25,
 		h: 25,
@@ -153,13 +158,26 @@ var enemyNumber = 0;
 		lastKnownX: null,
 		lastKnownY: null,
 	}
+
 	rooms[currentRoom].enemies[enemyNumber] = enemyData;
 	enemyNumber += 1;
 });
+var shieldData;
+	io.on("createShield", () =>{
+		shieldData = {
+			x: Math.random() * cnv.width,
+			y: Math.floor() * cnv.height,
+			w: 25,
+			width: 25,
+			h: 25,
+			height:25,
+		}
+		io.emit("sendShieldData", shieldData);
+	});
 const createEnemy = setInterval(() =>{
 if (rooms["dungeon"].players !== null){
 	io.emit("createEnemy");
-	for (let mID in rooms["dungeon"].enemies){
+	for (let mID of rooms["dungeon"].enemies){
 		const fCPResult = findClosestPlayer(mID, "dungeon");
 		moveTowards(rooms["dungeon"].enemies[mID], fCPResult.x, fCPResult.y, 6);
 		io.emit("enemyMoved", {id: mID})
@@ -178,16 +196,16 @@ function loop(){
 			rooms["dungeon"].enemies[mID].lastKnownY = rooms["dungeon"].enemies[mID].y;
 		};
 	}};
+	io.emit("currentDEnemies", (data))
 	requestAnimationFrame(loop);
 }
 function findClosestPlayer(enemy, rooms){
 	var shortestDistX = infinity;
 	var shortestDistY = infinity;
 	var shortestDistPlayer;
-	for (let id in rooms[rooms].players){
-		
+	for (let id in rooms[rooms].players){	
 		if(rooms[rooms].players[id].x <= shortestDistX){
-			if (rooms[rooms].players[id].x <= shortestDistX <= rooms[rooms].players[id].x <= shortestDistX){
+			if (rooms[rooms].players[id].x <= shortestDistY){
 				shortestDistX = rooms[rooms].players[id].x;
 				shortestDistY = rooms[rooms].players[id].y;
 				shortestDistPlayer = rooms[rooms].players[id];
