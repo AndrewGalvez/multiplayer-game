@@ -14,5 +14,8 @@
 		"nodemon": "^3.1.7",
 		"socket.io": "^4.8.0",
 		"uuidv4": "^6.2.13"
+	},
+	"devDependencies": {
+		"mocha": "^10.7.3"
 	}
 }
