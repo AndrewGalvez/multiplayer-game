@@ -42,7 +42,7 @@ function moveTowards(obj, targetX, targetY, durationInSeconds) {
     
     // Start the movement
     obj.currentMovement = requestAnimationFrame(update);
-}
+}[1]
 console.log("if u hack ur a loser");
 const querySearch = window.location.search;
 function sendMessage() {
@@ -75,13 +75,12 @@ function resetMove() {
 	canMove["d"] = true;
 }
 
-let bgImg = new Image();
-
 function background() {
 	// background
 	ctx.clearRect(0, 0, cnv.width, cnv.height);
 	//ctx.fillStyle = "black";
 	//ctx.fillRect(0, 0, cnv.width, cnv.height);
+	let bgImg = new Image();
 	bgImg.src = game.backgroundImage;
 	ctx.drawImage(bgImg, 0, 0, cnv.width, cnv.height);
 }
@@ -123,7 +122,7 @@ socket.on("newPlayer", (data) => {
 	game.players[data.id] = data.obj;
 });
 
-const shield = {x: 0, y: 0, w: 25, h: 25, lastX: 0, lastY: 0, visible: false}
+var shield = {x: 0, y: 0, w: 25, h: 25, lastX: 0, lastY: 0, visible: false}
 socket.on("sendShieldData", (data) => {
 	shield = data;
 });
@@ -138,7 +137,7 @@ socket.on("username", (data) => {
 });
 
 socket.on("playerMessage", (data) => {
-	if (data.name === undefined) return
+	if (data.name == undefined) return
 	var a = document.getElementById("chat-messages");
 	var b = document.createElement("p");
 	b.textContent = data.name.toString() + ": " + data.msg.toString();
@@ -210,10 +209,13 @@ socket.on("enemyMoved", (data) => {
 	}
 });
 socket.on("getEnemy", (data) => {
-	if (!game.enemies.some(enemy => enemy.id === data.id)){
-	game.enemies.push(data);
+	for(mID of game.enemies){
+		if (mID === data.id){
+			game.enemies.push(data);
+		}
+	}
 	console.log("enemy added");
-}});
+});
 socket.on("playerNewSprite", (data) => {
 	game.players[data.id].spriteState = data.new;
 });
@@ -239,13 +241,6 @@ socket.on("disconnect", () => {
 	window.location.reload();
 });
 
-socket.on("enemyDelete", (data) => {
-	for (var mID of game.enemies){
-		if (mID == data){
-			delete game.enemies[mID];
-		}
-	}
-});
 const cnv = document.getElementById("canvas");
 const ctx = cnv.getContext("2d");
 cnv.width = 1000;
@@ -405,8 +400,8 @@ function loop() {
 			});
 			lastUpdate = Date.now();
 		}
-	} catch (error) {
-		console.log("Error in game loop:", Error);
+	} catch (Error) {
+		console.log(Error);
 	}
 	requestAnimationFrame(loop);
 }
@@ -442,14 +437,13 @@ if (isMobile()) {
 	document.getElementById("D").style.opacity = 0;
 }
 
+loop();
+
 function returnToLobby(sec){
 	setTimeout( () => {
 		changeRoom("lobby", null);
 	}, sec * 1000)
 }
-
-loop();
-
 document.onkeydown = (e) => {
 	keys[e.key] = true;
 };

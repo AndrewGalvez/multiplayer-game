@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+
+<html>
+	<title>Game</title>
+	<head style="background-color: grey">
+		<style>
+			p {
+				font-size: 20 px;
+				font-family: sans-serif;
+			}
+			html {
+				background-color: grey;
+			}
+			canvas {
+				border: 5px solid white;
+			}
+			.block {
+				display: block;
+			}
+			.inline {
+				display: inline-block;
+			}
+			input {
+				width: 30px;
+				height: 30px;
+			}
+		</style>
+	</head>
+	<body>
+		<div style="float: left; width: 20%; height: 100%; position: fixed">
+			<center>
+				<p style="font-size: 32px"><u>Chat</u></p>
+				<p>
+					Information sent in chat is not secure. Do not send sensitive
+					information.
+				</p>
+				<p>---------------------------------</p>
+				<div id="chat-messages" style="background-color: aliceblue">
+					<!-- Message Cap is 16-->
+				</div>
+				<input
+					style="
+						bottom: 0;
+						position: fixed;
+						align-self: center;
+						width: 15%;
+						left: 0%;
+					"
+					placeholder="Message..."
+					id="chatInput"
+				/>
+				<button
+					style="
+						bottom: 0;
+						position: fixed;
+						align-self: center;
+						width: 5%;
+						left: 16%;
+					"
+					onclick="sendMessage()"
+				>
+					Send
+				</button>
+			</center>
+		</div>
+		<center><canvas id="canvas"></canvas></center>
+		<center><p>Press L to return to Lobby at any time</p></center>
+		<center>
+			<div>
+				<button id="W">W</button>
+			</div>
+			<button id="A">A</button>
+			<button id="S">S</button>
+			<button id="D">D</button>
+		</center>
+
+		<script src="/socket.io/socket.io.js"></script>
+		<script src="client/script.js"></script>
+	</body>
+</html>

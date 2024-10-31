@@ -157,16 +157,31 @@ var cnv;
 		height:25,
 		lastKnownX: null,
 		lastKnownY: null,
+		id: enemyNumber,
+		render: function(enemy) {ctx.drawImage(enemyImage, enemy.x, enemy.y, enemy.w, enemy.h);},
 	}
 
 	rooms[currentRoom].enemies[enemyNumber] = enemyData;
 	enemyNumber += 1;
+	for (let mID of rooms[currentRoom].enemies){
+		if (mID.id === enemyNumber - 1){
+			io.emit("getEnemy", rooms[currentRoom].enemies[enemyNumber - 1]);
+		}
+	}
+});
+io.on("defended", (data) =>{
+	for (var mID of rooms[data.room].enemies){
+		if (rooms[data.room].enemies[mID].x == data.x && rooms[data.room].enemies[mID].y == data.y){
+			delete rooms[data.room].enemies[mID];
+			io.emit("enemyDelete", mID);
+		}
+	}
 });
 var shieldData;
 	io.on("createShield", () =>{
 		shieldData = {
-			x: Math.random() * cnv.width,
-			y: Math.floor() * cnv.height,
+			x: Math.floor(Math.random() * cnv.width),
+			y: Math.floor(Math.random() * cnv.height),
 			w: 25,
 			width: 25,
 			h: 25,
@@ -174,19 +189,25 @@ var shieldData;
 		}
 		io.emit("sendShieldData", shieldData);
 	});
-const createEnemy = setInterval(() =>{
-if (rooms["dungeon"].players !== null){
-	io.emit("createEnemy");
-	for (let mID of rooms["dungeon"].enemies){
-		const fCPResult = findClosestPlayer(mID, "dungeon");
-		moveTowards(rooms["dungeon"].enemies[mID], fCPResult.x, fCPResult.y, 6);
-		io.emit("enemyMoved", {id: mID})
-	};
-};
-}, 10000);
+var createEnemyOn = false;
+if (createEnemyOn){createEnemyTimeout();};
+function createEnemyTimeout(){
+	setTimeout(() =>{
+		if (rooms["dungeon"].players != null){
+			io.emit("createEnemy");
+			for (let mID of rooms["dungeon"].enemies){
+				const fCPResult = findClosestPlayer(mID, "dungeon");
+				moveTowards(rooms["dungeon"].enemies[mID], fCPResult.x, fCPResult.y, 6);
+				io.emit("enemyMoved", {id: mID})
+			};
+		};
+		createEnemyOn = true;
+		}, 10000);}
+loop();
 function loop(){
+	if(createEnemyOn){createEnemyTimeout();};
 	if (rooms["dungeon"].players !== null){
-	for (let mID in rooms["dungeon"].enemies){
+	for (let mID of rooms["dungeon"].enemies){
 		if (rooms["dungeon"].enemies[mID].lastKnownX !== rooms["dungeon"].enemies[mID].x){
 			io.emit("enemyMoved", ({id: mID, x: rooms["dungeon"].enemies[mID].x, y: rooms["dungeon"].enemies[mID].y}));
 			rooms["dungeon"].enemies[mID].lastKnownX = rooms["dungeon"].enemies[mID].x;
@@ -196,12 +217,11 @@ function loop(){
 			rooms["dungeon"].enemies[mID].lastKnownY = rooms["dungeon"].enemies[mID].y;
 		};
 	}};
-	io.emit("currentDEnemies", (data))
-	requestAnimationFrame(loop);
+	setTimeout(loop, 1000 / 60); // approximately 60 FPS
 }
 function findClosestPlayer(enemy, rooms){
-	var shortestDistX = infinity;
-	var shortestDistY = infinity;
+	var shortestDistX = Infinity;
+	var shortestDistY = Infinity;
 	var shortestDistPlayer;
 	for (let id in rooms[rooms].players){	
 		if(rooms[rooms].players[id].x <= shortestDistX){
