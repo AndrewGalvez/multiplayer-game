@@ -1,190 +1,349 @@
-// lol
-console.log("if u hack ur a loser");
-const querySearch = window.location.search;
 function sendMessage() {
-	var i = document.getElementById("chatInput");
-	socket.emit("message", {
-		name: game.players[socket.id].name,
-		msg: i.value,
-	});
+	const i = document.getElementById("chatInput");
+	if (offlineMode || !game?.players[playerId] || !socket?.connected || !i.value.trim()) return;
+	sendGameEvent("message", { msg: i.value.trim() });
 	i.value = "";
 }
-function isMobile() {
-	return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-		navigator.userAgent
-	);
-}
 function checkCollision(player1, player2) {
-	return (
-		player1.x < player2.x + player2.w &&
-		player1.x + player1.w > player2.x &&
-		player1.y < player2.y + player2.h &&
-		player1.y + player1.h > player2.y
-	);
+	return Dungeon.intersects(player1, player2);
 }
 
-function resetMove() {
-	// reset move variables
-	canMove["w"] = true;
-	canMove["a"] = true;
-	canMove["s"] = true;
-	canMove["d"] = true;
+const backgrounds = new Map();
+for (const room of Object.values(World.createRooms())) {
+	const image = new Image();
+	image.src = room.backgroundImage;
+	backgrounds.set(room.backgroundImage, image);
 }
-
 function background() {
-	// background
 	ctx.clearRect(0, 0, cnv.width, cnv.height);
-	//ctx.fillStyle = "black";
-	//ctx.fillRect(0, 0, cnv.width, cnv.height);
-	let bgImg = new Image();
-	bgImg.src = game.backgroundImage;
-	ctx.drawImage(bgImg, 0, 0, cnv.width, cnv.height);
+	if (!backgrounds.has(game.backgroundImage)) {
+		const image = new Image();
+		image.src = game.backgroundImage;
+		backgrounds.set(game.backgroundImage, image);
+	}
+	const image = backgrounds.get(game.backgroundImage);
+	if (image.complete && image.naturalWidth) ctx.drawImage(image, 0, 0, cnv.width, cnv.height);
 }
 
+let changingRoom = false;
 function changeRoom(room, door) {
-	socket.emit("joinRoom", { r: room, d: door });
-}
-
-function getName(p) {
-	return prompt(p + "Enter Username");
-}
-
-function getPass() {
-	return prompt("Password: ");
+	if (!game?.players[playerId] || (!offlineMode && !socket?.connected) || changingRoom) return;
+	if (room === game.roomName) return;
+	if (offlineMode) {
+		if (!Object.hasOwn(offlineRooms, room)) return;
+		const previousRoom = offlineRooms[game.roomName];
+		const doorway = previousRoom.doors.find((door) => door.to === room);
+		if (!doorway && room !== "lobby") return;
+		delete previousRoom.players[playerId];
+		if (room === "dungeon") offlineSimulation.reset();
+		if (doorway?.newPos) Object.assign(offlinePlayer, doorway.newPos);
+		offlineRooms[room].players[playerId] = offlinePlayer;
+		setGameState({ ...offlineRooms[room], roomName: room }, playerId);
+		return;
+	}
+	changingRoom = true;
+	sendGameEvent("joinRoom", { r: room, d: door });
 }
 
 let game;
+let playerId;
+let offlineMode = false;
+let offlineRooms;
+let offlineSimulation;
+let offlinePlayer;
+let connectionTimer;
+let pendingName = null;
+let lastJoinedName = null;
+let lastOfflineAttack = 0;
 let playerImage = new Image();
-playerImage.src = "/client/sprites/player.png";
-let doorImage = new Image();
-doorImage.src = "/client/sprites/door.png";
-const socket = io();
-
-var a = getName("");
-var b = getPass();
-socket.emit("login", { username: a, password: b });
-
-socket.on("newPlayer", (data) => {
-	game.players[data.id] = data.obj;
+const zombieImage = document.createElement("canvas");
+playerImage.addEventListener("load", () => {
+	zombieImage.width = playerImage.naturalWidth;
+	zombieImage.height = playerImage.naturalHeight;
+	const zombieContext = zombieImage.getContext("2d");
+	zombieContext.filter = "grayscale(1) sepia(1) hue-rotate(50deg) saturate(4)";
+	zombieContext.drawImage(playerImage, 0, 0);
 });
-socket.on("currentGame", (data) => {
-	game = data;
-	if (!game.players[socket.id]) {
-		console.warn("Player not found in game data.");
+playerImage.src = "sprites/player.png";
+const attacks = new Map();
+
+function drawCharacter(character, image) {
+	const sourceX = [1, 2].includes(character.spriteState) ? 64 : 0;
+	const sourceY = [1, 3].includes(character.spriteState) ? 64 : 0;
+	ctx.drawImage(image, sourceX, sourceY, 64, 64, character.x, character.y, character.w, character.h);
+}
+
+function attack() {
+	const player = game?.players[playerId];
+	if (!player || game.roomName !== "dungeon" || changingRoom || (!offlineMode && !socket?.connected)) return;
+	if (offlineMode) {
+		if (game.enemies.some((enemy) => Dungeon.intersects(enemy, player))) {
+			changeRoom("lobby");
+			return;
+		}
+		const now = Date.now();
+		if (now - lastOfflineAttack < Dungeon.ATTACK_COOLDOWN) return;
+		lastOfflineAttack = now;
+		offlineSimulation.attack(player, now);
+		attacks.set(playerId, { area: Dungeon.attackArea(player), until: performance.now() + 400 });
 		return;
 	}
+	// Flush the local pose before the server evaluates the strike.
+	sendGameEvent("newSprite", player.spriteState);
+	sendGameEvent("move", { x: player.x, y: player.y, roomName: game.roomName });
+	sendGameEvent("attack");
+}
+const socket = typeof io === "function" && ["http:", "https:"].includes(location.protocol)
+	? io({ autoConnect: false, timeout: 5000 }) : null;
+const entryScreen = document.getElementById("entry-screen");
+const gameScreen = document.getElementById("game-screen");
+const nameInput = document.getElementById("player-name");
+const joinError = document.getElementById("join-error");
+let joining = false;
+let joinTimer;
+
+function sendGameEvent(event, data) {
+	if (!offlineMode && socket?.connected) socket.emit(event, data);
+}
+
+function onServerEvent(event, handler) {
+	socket?.on(event, (data) => {
+		if (!offlineMode) handler(data);
+	});
+}
+
+function waitForServer() {
+	if (offlineMode || connectionTimer) return;
+	connectionTimer = setTimeout(startOfflineMode, 20000);
+}
+
+function startOfflineMode() {
+	if (offlineMode) return;
+	const name = pendingName || lastJoinedName;
+	offlineMode = true;
+	clearTimeout(connectionTimer);
+	connectionTimer = null;
+	socket?.disconnect();
+	offlineRooms = World.createRooms();
+	offlineSimulation = Dungeon.createDungeonSimulation(offlineRooms.dungeon);
+	offlineSimulation.reset();
+	game = null;
+	keys = {};
+	attacks.clear();
+	finishJoining();
+	document.getElementById("mode-status").hidden = false;
+	document.getElementById("chat-panel").hidden = true;
+	gameScreen.dataset.offline = "true";
+	if (name) startOfflineGame(name);
+}
+
+function startOfflineGame(name) {
+	offlinePlayer = {
+		id: "offline-player", name,
+		x: 65 + Math.floor(Math.random() * 160) * 5,
+		y: 80 + Math.floor(Math.random() * 120) * 5,
+		w: 64, h: 64, speed: 5, score: 0, spriteState: 1,
+	};
+	offlineRooms.lobby.players[offlinePlayer.id] = offlinePlayer;
+	setGameState({ ...offlineRooms.lobby, roomName: "lobby" }, offlinePlayer.id);
+}
+
+function joinOnline(name) {
+	joining = true;
+	nameInput.disabled = true;
+	joinError.textContent = "Joining...";
+	clearTimeout(joinTimer);
+	joinTimer = setTimeout(() => {
+		pendingName = null;
+		finishJoining("Couldn't join. Please try again.");
+	}, 8000);
+	sendGameEvent("joinGame", { name });
+}
+
+function finishJoining(error = "") {
+	clearTimeout(joinTimer);
+	joining = false;
+	nameInput.disabled = false;
+	joinError.textContent = error;
+}
+
+function showEntry(message) {
+	game = null;
+	keys = {};
+	changingRoom = false;
+	gameScreen.hidden = true;
+	entryScreen.hidden = false;
+	finishJoining(message);
+	nameInput.focus({ preventScroll: true });
+}
+
+try {
+	nameInput.value = (localStorage.getItem("multiplayer-player-name") || "").slice(0, 20);
+} catch {
+	// Storage can be unavailable in private or embedded browsers.
+}
+nameInput.addEventListener("input", () => {
+	nameInput.removeAttribute("aria-invalid");
+	joinError.textContent = "";
 });
 
-socket.on("playerDisconnect", (data) => {
-	delete game.players[data];
-});
-socket.on("username", (data) => {
-	if (!game.players[data.id]) game.players[data.id] = {};
-	game.players[data.id].name = data.username;
+document.getElementById("join-form").addEventListener("submit", (event) => {
+	event.preventDefault();
+	if (joining) return;
+	const name = nameInput.value.trim().replace(/\s+/g, " ");
+	if (!name || name.length > 20 || /[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/u.test(name)) {
+		joinError.textContent = "Choose a name between 1 and 20 characters.";
+		nameInput.setAttribute("aria-invalid", "true");
+		nameInput.focus();
+		return;
+	}
+	pendingName = name;
+	nameInput.value = name;
+	if (offlineMode) {
+		startOfflineGame(name);
+		return;
+	}
+	if (!socket?.connected) {
+		joining = true;
+		nameInput.disabled = true;
+		joinError.textContent = "Connecting...";
+		waitForServer();
+		return;
+	}
+	joinOnline(name);
 });
 
-socket.on("playerMessage", (data) => {
-	var a = document.getElementById("chat-messages");
-	var b = document.createElement("p");
-	b.textContent = data.name.toString() + ": " + data.msg.toString();
+onServerEvent("connect", () => {
+	clearTimeout(connectionTimer);
+	connectionTimer = null;
+	if (pendingName) joinOnline(pendingName);
+	else finishJoining();
+});
+onServerEvent("connect_error", () => {
+	joinError.textContent = "Can't reach the game yet. Trying to reconnect...";
+});
+onServerEvent("joinError", (message) => {
+	pendingName = null;
+	finishJoining(message);
+	nameInput.setAttribute("aria-invalid", "true");
+	nameInput.focus();
+});
+
+onServerEvent("newPlayer", (data) => {
+	if (game) game.players[data.id] = data.obj;
+});
+onServerEvent("currentGame", (data) => {
+	setGameState(data, socket.id);
+});
+
+function setGameState(data, id) {
+	if (!data.players?.[id]) return;
+	playerId = id;
+	const entering = !game;
+	const changingWorld = game?.roomName !== data.roomName;
+	game = data;
+	if (changingWorld) {
+		keys = {};
+		attacks.clear();
+	}
+	changingRoom = false;
+	finishJoining();
+	const name = game.players[playerId].name;
+	lastJoinedName = name;
+	pendingName = null;
+	try {
+		localStorage.setItem("multiplayer-player-name", name);
+	} catch {
+		// Remembering a name is optional; joining is not.
+	}
+	entryScreen.hidden = true;
+	gameScreen.hidden = false;
+	if (entering) {
+		document.getElementById("chat-messages").replaceChildren();
+		keys = {};
+		cnv.focus({ preventScroll: true });
+	}
+}
+
+onServerEvent("playerDisconnect", (data) => {
+	if (game) delete game.players[data];
+});
+
+onServerEvent("playerMessage", (data) => {
+	if (!game) return;
+	const a = document.getElementById("chat-messages");
+	const b = document.createElement("p");
+	const sender = document.createElement("strong");
+	sender.textContent = `${data.name}: `;
+	b.append(sender, document.createTextNode(data.msg));
 	a.appendChild(b);
-	if (a.childElementCount >= 16) {
+	if (a.childElementCount > 16) {
 		a.removeChild(a.firstElementChild);
 	}
+	a.scrollTop = a.scrollHeight;
 });
-socket.on("wrongPassword", (data) => {
-	var a = getName("Wrong Password, ");
-	var b = getPass();
-	socket.emit("login", { username: a, password: b });
-});
-socket.on("accountDoesNotExist", () => {
-	while (true) {
-		var a = confirm("Account Not found. Create new Account?");
-		if (a) {
-			var c = getName("Choose: ");
-			var d = getPass();
-			socket.emit("createAccount", { username: c, password: d });
-			break;
-		} else {
-			window.location.reload();
-		}
-	}
-});
-socket.on("accountExists", () => {
-	alert("Account already exists.");
-	while (true) {
-		var a = confirm("Create new Account?");
-		if (a) {
-			var c = getName("Choose: ");
-			var d = getPass();
-			socket.emit("createAccount", { username: c, password: d });
-			break;
-		} else {
-			window.location.reload();
-		}
-	}
-});
-socket.on("createdAccount", () => {
-	alert("Account successfully created. Please login now.");
-	var a = getName("");
-	var b = getPass();
-	socket.emit("login", { username: a, password: b });
-});
-socket.on("playerMoved", (data) => {
-	if (data.id == socket.id) return;
-	if (!game) return;
+onServerEvent("playerMoved", (data) => {
+	if (data.id == playerId) return;
+	if (!game?.players[data.id]) return;
 	game.players[data.id].x = data.x;
 	game.players[data.id].y = data.y;
 });
-socket.on("playerNewSprite", (data) => {
+onServerEvent("playerNewSprite", (data) => {
+	if (!game?.players[data.id]) return;
 	game.players[data.id].spriteState = data.new;
 });
-socket.on("playerGotBanana", (data) => {
+onServerEvent("zombiesUpdated", (enemies) => {
+	if (game?.roomName === "dungeon") game.enemies = enemies;
+});
+onServerEvent("playerAttacked", (data) => {
+	if (game?.roomName === "dungeon" && data.area) {
+		attacks.set(data.id, { area: data.area, until: performance.now() + 400 });
+	}
+});
+onServerEvent("playerGotBanana", (data) => {
+	if (!game?.players[data.id] || !game.banana) return;
 	game.players[data.id].score += 1;
 	game.banana.x = data.newX;
 	game.banana.y = data.newY;
 });
-socket.on("disconnectMe", (data) => {
-	window.location.assign(`/client/disconnect.html?reason=${data.reason}`);
+onServerEvent("disconnectMe", (data) => {
+	socket.disconnect();
+	showEntry(data.reason || "You have been disconnected.");
 });
-socket.on("disconnect", () => {
-	window.alert(
-		"You have lost connection to the server for an unknown reason. Continue to attempt to reconnect."
-	);
-	window.location.reload();
+onServerEvent("disconnect", () => {
+	pendingName = pendingName || lastJoinedName;
+	showEntry("Connection lost. Reconnecting...");
+	waitForServer();
+	if (!socket.active) socket.connect();
 });
 
 const cnv = document.getElementById("canvas");
 const ctx = cnv.getContext("2d");
 cnv.width = 1000;
 cnv.height = 800;
+ctx.imageSmoothingEnabled = false;
 
 let keys = {};
-let canMove = {
-	w: true,
-	a: true,
-	s: true,
-	d: true,
-};
+let lastFrameTime;
 let lastUpdate = Date.now();
 let updateDelay = 5;
-let prevPos = [0, 0];
-function loop() {
-	if (keys["l"]) changeRoom("lobby", null);
+function loop(timestamp = performance.now()) {
+	const seconds = lastFrameTime === undefined ? 0 : (timestamp - lastFrameTime) / 1000;
+	lastFrameTime = timestamp;
 	try {
-		if (!game || !game.players || !game.players[socket.id]) {
-			console.log("Waiting for game state...");
+		if (!game || !game.players || !game.players[playerId]) {
 			requestAnimationFrame(loop);
 			return;
 		}
-		var a = game.players[socket.id];
-		resetMove();
+		var a = game.players[playerId];
 
 		background();
+		ctx.font = "16px Arial";
+		ctx.textAlign = "center";
+		ctx.textBaseline = "middle";
 		// doors
 		for (var d of game.doors) {
 			if (checkCollision(a, d)) {
-				console.log(`going to ${d.to}`);
 				changeRoom(d.to, d);
 			}
 			ctx.fillStyle = "black";
@@ -197,32 +356,30 @@ function loop() {
 
 		// enemies
 		for (var enemy of game.enemies) {
-			if (checkCollision(enemy, a)) {
-				// TODO: stuff
+			if (zombieImage.width) drawCharacter(enemy, zombieImage);
+		}
+		for (const [id, effect] of attacks) {
+			if (performance.now() > effect.until) {
+				attacks.delete(id);
+				continue;
 			}
-			enemy.update();
-			enemy.render(ctx);
+			ctx.fillStyle = "rgba(235, 255, 200, 0.2)";
+			ctx.strokeStyle = "#efffc8";
+			ctx.lineWidth = 2;
+			ctx.fillRect(effect.area.x, effect.area.y, effect.area.w, effect.area.h);
+			ctx.strokeRect(effect.area.x, effect.area.y, effect.area.w, effect.area.h);
 		}
 		// player logic
 		ctx.fillStyle = "white";
 		ctx.font = "16px Arial";
 		for (var id in game.players) {
-			p = game.players[id];
+			const p = game.players[id];
 			if (!p) break;
 			ctx.fillStyle = "black";
 			//ctx.fillRect(p.x, p.y, p.w, p.h); // <- delete this later, for testing
 
-			if (p.spriteState == 1)
-				ctx.drawImage(playerImage, p.w, p.h, p.w, p.h, p.x, p.y, p.w, p.h);
-			// w
-			else if (p.spriteState == 2)
-				ctx.drawImage(playerImage, p.w, 0, p.w, p.h, p.x, p.y, p.w, p.h);
-			// d
-			else if (p.spriteState == 3)
-				ctx.drawImage(playerImage, 0, p.h, p.w, p.h, p.x, p.y, p.w, p.h);
-			// s
-			else if (p.spriteState == 4)
-				ctx.drawImage(playerImage, 0, 0, p.w, p.h, p.x, p.y, p.w, p.h); // a
+			if (!playerImage.complete || !playerImage.naturalWidth) continue;
+			drawCharacter(p, playerImage);
 			ctx.fillRect(
 				p.x + p.w / 2 - ctx.measureText(p.name).width / 2 - 4,
 				p.y - (12 + 16) - 2,
@@ -232,57 +389,19 @@ function loop() {
 			ctx.fillStyle = "white";
 			ctx.fillText(p.name, p.x + p.w / 2, p.y - 16);
 			ctx.fillStyle = "white";
-			if (id === socket.id) continue; // skip checking collision with self
-			var p = game.players[id];
 		}
 		// move
-		if (keys["w"] || keys["a"] || keys["s"] || keys["d"]) {
-			if (
-				keys["w"] &&
-				canMove["w"] &&
-				game.players[socket.id].y - game.players[socket.id].speed > 0
-			) {
-				game.players[socket.id].y -= game.players[socket.id].speed;
-				if (game.players[socket.id].spriteState != 1) {
-					socket.emit("newSprite", 1);
-				}
-				game.players[socket.id].spriteState = 1;
-			}
-			if (
-				keys["a"] &&
-				canMove["a"] &&
-				game.players[socket.id].x - game.players[socket.id].speed > 0
-			) {
-				game.players[socket.id].x -= game.players[socket.id].speed;
-				game.players[socket.id].spriteState = 4;
-				socket.emit("newSprite", 4);
-			}
-			if (
-				keys["s"] &&
-				canMove["s"] &&
-				game.players[socket.id].y + 25 + game.players[socket.id].speed <
-					cnv.height
-			) {
-				game.players[socket.id].y += game.players[socket.id].speed;
-				game.players[socket.id].spriteState = 3;
-				socket.emit("newSprite", 3);
-			}
-			if (
-				keys["d"] &&
-				canMove["d"] &&
-				game.players[socket.id].x + 25 + game.players[socket.id].speed <
-					cnv.width
-			) {
-				game.players[socket.id].x += game.players[socket.id].speed;
-				game.players[socket.id].spriteState = 2;
-				socket.emit("newSprite", 2);
-			}
+		if (!changingRoom) {
+			const previousFacing = a.spriteState;
+			Dungeon.movePlayer(a, keys, seconds);
+			if (a.spriteState !== previousFacing) sendGameEvent("newSprite", a.spriteState);
 		}
 		// send move updates
-		if (Date.now() - lastUpdate > updateDelay) {
-			socket.emit("move", {
-				x: game.players[socket.id].x,
-				y: game.players[socket.id].y,
+		if (!changingRoom && Date.now() - lastUpdate > updateDelay) {
+			sendGameEvent("move", {
+				x: game.players[playerId].x,
+				y: game.players[playerId].y,
+				roomName: game.roomName,
 			});
 			lastUpdate = Date.now();
 		}
@@ -291,43 +410,57 @@ function loop() {
 	}
 	requestAnimationFrame(loop);
 }
-if (isMobile()) {
-	document.getElementById("W").addEventListener("mousedown", () => {
-		keys["w"] = true;
+document.querySelectorAll("[data-key]").forEach((button) => {
+	button.addEventListener("pointerdown", (event) => {
+		event.preventDefault();
+		cnv.focus({ preventScroll: true });
+		button.setPointerCapture(event.pointerId);
+		keys[button.dataset.key] = true;
 	});
-	document.getElementById("A").addEventListener("mousedown", () => {
-		keys["a"] = true;
-	});
-	document.getElementById("S").addEventListener("mousedown", () => {
-		keys["s"] = true;
-	});
-	document.getElementById("D").addEventListener("mousedown", () => {
-		keys["d"] = true;
-	});
-	document.getElementById("W").addEventListener("mouseup", () => {
-		keys["w"] = false;
-	});
-	document.getElementById("A").addEventListener("mouseup", () => {
-		keys["a"] = false;
-	});
-	document.getElementById("S").addEventListener("mouseup", () => {
-		keys["s"] = false;
-	});
-	document.getElementById("D").addEventListener("mouseup", () => {
-		keys["d"] = false;
-	});
-} else {
-	document.getElementById("W").style.opacity = 0;
-	document.getElementById("A").style.opacity = 0;
-	document.getElementById("S").style.opacity = 0;
-	document.getElementById("D").style.opacity = 0;
-}
+	for (const event of ["pointerup", "pointercancel", "lostpointercapture"]) {
+		button.addEventListener(event, () => { keys[button.dataset.key] = false; });
+	}
+});
+
+document.getElementById("chat-form").addEventListener("submit", (event) => {
+	event.preventDefault();
+	sendMessage();
+});
 
 loop();
 
-document.onkeydown = (e) => {
-	keys[e.key] = true;
-};
-document.onkeyup = (e) => {
-	keys[e.key] = false;
-};
+const movementKeys = { ArrowUp: "w", ArrowLeft: "a", ArrowDown: "s", ArrowRight: "d" };
+document.addEventListener("keydown", (event) => {
+	if (!game || event.target.matches("input, textarea, button") || event.target.isContentEditable || event.ctrlKey || event.metaKey || event.altKey) return;
+	const key = movementKeys[event.key] || event.key.toLowerCase();
+	if (key === "f") {
+		event.preventDefault();
+		if (!event.repeat) attack();
+		return;
+	}
+	if (["w", "a", "s", "d", "l"].includes(key)) {
+		event.preventDefault();
+		keys[key] = true;
+		if (key === "l" && !event.repeat) changeRoom("lobby", null);
+	}
+});
+document.addEventListener("keyup", (event) => {
+	keys[movementKeys[event.key] || event.key.toLowerCase()] = false;
+});
+document.addEventListener("focusin", (event) => {
+	if (event.target.matches("input, textarea")) keys = {};
+});
+window.addEventListener("blur", () => { keys = {}; });
+document.addEventListener("visibilitychange", () => {
+	lastFrameTime = undefined;
+	if (document.hidden) keys = {};
+});
+
+setInterval(() => {
+	if (!offlineMode || !offlineSimulation || !game) return;
+	const hitPlayers = offlineSimulation.update(0.05);
+	if (game.roomName === "dungeon" && hitPlayers.has(playerId)) changeRoom("lobby");
+}, 50);
+
+waitForServer();
+socket?.connect();

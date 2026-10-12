@@ -4,7 +4,9 @@
 	"description": "",
 	"main": "app.js",
 	"scripts": {
-		"test": "nodemon app.js --ignore data/accounts.json",
+		"start": "node app.js",
+		"dev": "nodemon app.js",
+		"test": "node --test",
 		"server": "node app.js"
 	},
 	"author": "",
@@ -14,5 +16,8 @@
 		"nodemon": "^3.1.7",
 		"socket.io": "^4.8.0",
 		"uuidv4": "^6.2.13"
+	},
+	"devDependencies": {
+		"socket.io-client": "^4.8.0"
 	}
 }
