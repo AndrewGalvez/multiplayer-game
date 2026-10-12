@@ -1,8 +1,5 @@
 {
-  "andy": {
-    "password": "password"
-  },
-  "w": {
-    "password": "w"
-  }
+	"andy": {
+		"password": "password"
+	}
 }

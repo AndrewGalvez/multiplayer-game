@@ -1,0 +1,38 @@
+{
+	"lobby": {
+		"players": {},
+		"enemies": [],
+		"backgroundImage": "/client/sprites/bananaValley.png",
+		"doors": [
+			{
+				"x": 450,
+				"y": 0,
+				"w": 100,
+				"h": 50,
+				"to": "dungeon",
+				"newPos": {
+					"x": 450,
+					"y": 675
+				}
+			}
+		]
+	},
+	"dungeon": {
+		"players": {},
+		"enemies": [],
+		"backgroundImage": "/client/sprites/dungeonBackground.png",
+		"doors": [
+			{
+				"x": 450,
+				"y": 750,
+				"w": 100,
+				"h": 50,
+				"to": "lobby",
+				"newPos": {
+					"x": 450,
+					"y": 51
+				}
+			}
+		]
+	}
+}
